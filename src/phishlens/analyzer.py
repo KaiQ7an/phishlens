@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from . import attachments as attachment_rules
 from .auth import AuthVerdicts, parse_authentication_results
@@ -93,6 +94,31 @@ def _ordinary_reply_domain(domain: str) -> bool:
             and find_lookalike(domain) is None)
 
 
+def _ordinary_visible_site(link: Link) -> bool:
+    """Only plain visible site names/URLs qualify for the narrow calibration.
+
+    Encoded text remains outside this pattern rather than trying to infer how a
+    browser or a redirect would decode it. No destination is fetched or trusted.
+    """
+    visible = link.anchor_text
+    if (not visible.isascii() or any(ch.isspace() or ord(ch) < 33 or ord(ch) == 127
+                                     for ch in visible)
+            or "%" in visible or "\\" in visible):
+        return False
+    url = visible if visible.lower().startswith(("http://", "https://")) else "https://" + visible
+    try:
+        parts = urlsplit(url)
+        host = (parts.hostname or "").lower()
+        port = 443 if parts.scheme == "https" else 80
+        return (parts.scheme in ("http", "https") and _ordinary_reply_domain(host)
+                and not any(label.startswith("xn--") for label in host.split("."))
+                and host == link.anchor_host() and parts.username is None
+                and parts.password is None and parts.port in (None, port)
+                and (":" not in parts.netloc or parts.netloc.endswith(f":{port}")))
+    except ValueError:
+        return False
+
+
 def _header_findings(email: ParsedEmail, provider: str | None = None) -> list[Finding]:
     sender = email.sender
     if sender is None or not sender.domain:
@@ -170,6 +196,7 @@ def _link_findings(links: list[Link], provider: str | None = None,
         claimed = link.anchor_mismatch()
         if claimed:
             route_context = (provider and link.source == "html"
+                             and _ordinary_visible_site(link)
                              and not link.anchor_looks_like_login
                              and not any(same_site(claimed, domain) for domain in PROTECTED_DOMAINS)
                              and find_lookalike(claimed) is None and not is_mixed_script(claimed)

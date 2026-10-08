@@ -99,6 +99,29 @@ def test_opaque_provider_tracking_route_retains_an_unverified_destination_warnin
     assert not any(f.code == "url.anchor_mismatch" for f in report.findings)
 
 
+@pytest.mark.parametrize("anchor", [
+    "https://bad_domain.example.org", "https://-bad.example.org", "https://bad-.example.org",
+    "https://events.example.org:invalid", "https://events.example.org:8443",
+    "https://events.example.org:", "https://events.example.org:0443",
+    "http://events.example.org:443", "https://events.example.org/%zz",
+    "https://events.example.org/%6cogin", "https://events.example.org/?page=%256cogin",
+    "https://events.example.org/\\login", "xn--caf-dma.example.org",
+])
+def test_malformed_encoded_or_nonstandard_visible_urls_keep_high_mismatch(anchor):
+    report = analyze(mailing_email(html=tracked_link(anchor)))
+    assert finding(report, "url.anchor_mismatch").points == 30
+    assert not any(f.code == "url.tracking_destination_unverified" for f in report.findings)
+
+
+@pytest.mark.parametrize("anchor", [
+    "events.example.org", "events.example.org/news", "https://events.example.org/news",
+    "https://events.example.org:443/news", "http://events.example.org:80/news",
+])
+def test_plain_visible_site_urls_can_receive_unverified_route_warning(anchor):
+    report = analyze(mailing_email(html=tracked_link(anchor)))
+    assert finding(report, "url.tracking_destination_unverified").points == 5
+
+
 @pytest.mark.parametrize("anchor", ["monash.edu", "login.monash.edu", "micros0ft.com", "аbc.example", "events.example.org/login"])
 @pytest.mark.parametrize("reverse", [False, True])
 def test_later_serious_mismatch_to_same_tracker_host_is_not_hidden(anchor, reverse):
