@@ -30,7 +30,17 @@ SIGNALS: tuple[Signal, ...] = (
     )),
     Signal("content.payment", "medium", "Asks for money or an unusual payment method", (
         "gift card", "wire transfer", "bank transfer", "bitcoin", "western union", "processing fee",
-        "转账", "汇款", "保证金", "手续费", "安全账户", "比特币",
+        "redelivery fee", "customs fee", "clearance fee", "bank details", "new account details",
+        "转账", "汇款", "保证金", "手续费", "安全账户", "比特币", "清关费", "西联", "收款账户", "银行账户变更",
+    )),
+    Signal("content.remote_deal", "medium", "Wants money from someone you cannot meet or inspect", (
+        "currently overseas", "unable to show you", "send you the keys", "mail you the keys",
+        "before inspection", "before the inspection",
+        "在海外", "人在国外", "无法看房", "无法带你看房", "钥匙寄给你", "先付押金", "先交押金",
+    )),
+    Signal("content.qr_code", "medium", "Asks you to scan a QR code, which hides the link from checks", (
+        "scan the qr code", "scan this qr code", "scan the code with your phone",
+        "扫描二维码", "扫码",
     )),
     Signal("content.authority", "medium", "Claims to be police, a court or a government office", (
         "police", "embassy", "consulate", "arrest warrant", "money laundering", "under investigation", "interpol",

@@ -91,3 +91,22 @@ def test_telling_the_reader_not_to_call_the_police_is_secrecy():
     for body in ("不要报警，按我们说的做。", "Don't call the police or anyone else."):
         codes = {f.code for f in analyze(_email("Helper", "mail-host.example", body)).findings}
         assert "content.secrecy" in codes
+
+
+def test_bank_detail_changes_and_parcel_fees_are_payment_requests():
+    for body in ("Please update our bank details before the next invoice.",
+                 "A redelivery fee of $2.95 is required.", "请支付清关费后放行包裹。"):
+        codes = {f.code for f in analyze(_email("Notice", "mail-host.example", body)).findings}
+        assert "content.payment" in codes, body
+
+
+def test_money_before_any_meeting_is_a_remote_deal():
+    for body in ("I am currently overseas so I will mail you the keys.", "我人在国外，无法看房，先付押金。"):
+        codes = {f.code for f in analyze(_email("Landlord", "mail-host.example", body)).findings}
+        assert "content.remote_deal" in codes, body
+
+
+def test_qr_code_requests_are_flagged():
+    for body in ("Scan the QR code to continue.", "请扫描二维码完成认证。"):
+        codes = {f.code for f in analyze(_email("IT", "mail-host.example", body)).findings}
+        assert "content.qr_code" in codes, body
