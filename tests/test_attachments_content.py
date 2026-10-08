@@ -1,6 +1,6 @@
 import pytest
 
-from phishlens.attachments import classify
+from phishlens.attachments import classify, encrypted_archive
 from phishlens.content import find_signals
 from phishlens.message import Attachment
 
@@ -24,6 +24,20 @@ def test_risky_attachments(name, code):
 @pytest.mark.parametrize("name", ["report.pdf", "notes.docx", "README"])
 def test_ordinary_attachments(name):
     assert classify(att(name)) == []
+
+
+def test_attached_web_pages_are_high_risk():
+    assert ("high", "attachment.html") in [(sev, c) for sev, c, _ in classify(att("voicemail.html"))]
+
+
+@pytest.mark.parametrize("text", ["The archive password is 4921.", "解压密码：8812"])
+def test_archive_sent_with_its_password(text):
+    assert encrypted_archive(att("invoice.zip"), text)[1] == "attachment.encrypted_archive"
+
+
+def test_password_only_matters_for_archives():
+    assert encrypted_archive(att("invoice.pdf"), "The password is 4921.") is None
+    assert encrypted_archive(att("photos.zip"), "Photos from Saturday attached.") is None
 
 
 def test_signals_in_english_and_chinese():

@@ -280,8 +280,6 @@ KNOWN_GAPS: dict[str, str] = {
     "dev/legit/newsletter-tracked-url-text":
         "Click tracking whose visible text is the final URL reads as an anchor mismatch; only Constant "
         "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
-    "dev/phish/encrypted-zip-invoice": "An archive whose password is in the same email is only scored as an archive.",
-    "dev/phish/voicemail-html": "A lone HTML attachment scores just below the suspicious threshold.",
     "holdout/phish/tax-refund": "Missed by the baseline rules (holdout: not used for tuning).",
     "holdout/phish/crypto-investment": "Missed by the baseline rules (holdout: not used for tuning).",
     "holdout/phish/macro-invoice": "Missed by the baseline rules (holdout: not used for tuning).",

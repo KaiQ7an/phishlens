@@ -251,10 +251,14 @@ def _content_findings(email: ParsedEmail, visible_html_text: str) -> list[Findin
     return findings
 
 
-def _attachment_findings(email: ParsedEmail) -> list[Finding]:
+def _attachment_findings(email: ParsedEmail, visible_html_text: str = "") -> list[Finding]:
     findings = []
+    text = "\n".join((email.subject, email.text, visible_html_text))
     for attachment in email.attachments:
-        for severity, code, explanation in attachment_rules.classify(attachment):
+        issues = attachment_rules.classify(attachment)
+        if encrypted := attachment_rules.encrypted_archive(attachment, text):
+            issues.append(encrypted)
+        for severity, code, explanation in issues:
             findings.append(Finding(code, severity, explanation, f"sha256 {attachment.sha256}"))
     return findings
 
@@ -267,7 +271,7 @@ def analyze(email: ParsedEmail, source: str = "", intel: ThreatIntel | None = No
                           if l.url not in html_urls]
     auth = parse_authentication_results(email.authentication_results)
     content = _content_findings(email, visible_html_text)
-    attachments = _attachment_findings(email)
+    attachments = _attachment_findings(email, visible_html_text)
     provider = (None if any(f.severity in ("medium", "high") for f in content + attachments)
                 else _mailing_context(email, auth))
     headers = _header_findings(email, provider)
