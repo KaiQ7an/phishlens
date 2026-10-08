@@ -271,9 +271,13 @@ def analyze(email: ParsedEmail, source: str = "", intel: ThreatIntel | None = No
                         for f in headers):
         provider = None
         headers = _header_findings(email)
-    findings = (_auth_findings(auth) + headers
-                + _link_findings(links, provider, email.sender.domain if email.sender else "")
-                + content + attachments)
+    link_findings = _link_findings(links, provider, email.sender.domain if email.sender else "")
+    if provider and any(f.severity in ("medium", "high") for f in link_findings):
+        # Forms and other substantial URL signals invalidate routing context
+        # for the whole message, irrespective of link order or shared hosts.
+        headers = _header_findings(email)
+        link_findings = _link_findings(links)
+    findings = _auth_findings(auth) + headers + link_findings + content + attachments
     return Report(source=source, email=email, auth=auth, findings=sort_findings(findings), links=links)
 
 

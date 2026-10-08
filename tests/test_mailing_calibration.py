@@ -129,8 +129,9 @@ def test_later_serious_mismatch_to_same_tracker_host_is_not_hidden(anchor, rever
     if reverse:
         links.reverse()
     report = analyze(mailing_email(html="".join(links)))
-    assert finding(report, "url.tracking_destination_unverified").points == 5
+    assert finding(report, "header.reply_to_mismatch").points == 15
     assert finding(report, "url.anchor_mismatch").points == 30
+    assert not any(f.code == "url.tracking_destination_unverified" for f in report.findings)
 
 
 @pytest.mark.parametrize("url", [
@@ -175,6 +176,25 @@ def test_unknown_sender_keeps_high_tracker_mismatch():
 def test_form_destination_does_not_gain_tracker_reduction():
     report = analyze(mailing_email(html=f'<form action="{escape(_TRACKER, quote=True)}"></form>'))
     assert finding(report, "url.form").points == 15
+    assert finding(report, "header.reply_to_mismatch").points == 15
+    assert not any(f.code == "url.tracking_destination_unverified" for f in report.findings)
+
+
+@pytest.mark.parametrize("other_link", [
+    '<form action="https://forms.example.org/submit"></form>',
+    '<a href="https://203.0.113.9/news">News</a>',
+    '<a href="https://micros0ft.com/news">News</a>',
+    '<a href="https://user@updates.example.org/news">News</a>',
+])
+@pytest.mark.parametrize("reverse", [False, True])
+def test_other_substantial_url_signals_disable_both_reductions(other_link, reverse):
+    links = [tracked_link(), other_link]
+    if reverse:
+        links.reverse()
+    report = analyze(mailing_email(html="".join(links)))
+    assert finding(report, "header.reply_to_mismatch").points == 15
+    assert finding(report, "url.anchor_mismatch").points == 30
+    assert report.level == "high"
     assert not any(f.code == "url.tracking_destination_unverified" for f in report.findings)
 
 
