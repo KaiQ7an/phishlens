@@ -168,6 +168,68 @@ def test_missing_from_header():
     assert email.text.strip() == "body"
 
 
+@pytest.mark.parametrize("name", ["From", "Reply-To"])
+def test_recoverable_identity_header_defects_warn_without_dropping_content(name):
+    raw = (f"{name}: bad local@shared1.ccsend.com\n\nSynthetic body\n").encode()
+
+    email = parse_bytes(raw)
+
+    address = email.sender if name == "From" else email.reply_to[0]
+    assert address is not None
+    assert address.domain == "shared1.ccsend.com"
+    assert email.text.strip() == "Synthetic body"
+    assert email.parsing_warnings == [
+        f"{name} header contains parsing defects; the recovered address may be incomplete.",
+    ]
+    assert all("bad local" not in warning and "ccsend.com" not in warning
+               for warning in email.parsing_warnings)
+
+
+@pytest.mark.parametrize("name", ["From", "Reply-To"])
+def test_duplicate_identity_headers_warn_and_preserve_first_address(name):
+    raw = (f"{name}: first@example.org\n{name.lower()}: second@example.net\n\n"
+           "Synthetic body\n").encode()
+
+    email = parse_bytes(raw)
+
+    address = email.sender if name == "From" else email.reply_to[0]
+    assert address is not None
+    assert address.address == "first@example.org"
+    assert email.text.strip() == "Synthetic body"
+    assert email.parsing_warnings == [
+        f"Duplicate {name} headers were detected; the recovered identity may be ambiguous.",
+    ]
+
+
+@pytest.mark.parametrize("name", ["From", "Reply-To"])
+def test_defects_in_unused_duplicate_identity_headers_are_reported(name):
+    raw = (f"{name}: first@example.org\n{name}: bad local@shared1.ccsend.com\n\n"
+           "Synthetic body\n").encode()
+
+    email = parse_bytes(raw)
+
+    address = email.sender if name == "From" else email.reply_to[0]
+    assert address is not None
+    assert address.address == "first@example.org"
+    assert len(email.parsing_warnings) == 2
+    assert any(f"Duplicate {name} headers" in warning for warning in email.parsing_warnings)
+    assert any(f"{name} header contains parsing defects" in warning
+               for warning in email.parsing_warnings)
+
+
+def test_valid_quoted_identity_names_and_comments_have_no_parsing_warnings():
+    raw = (b'From: "Newsletter, Weekly" (Updates) <newsletter@shared1.ccsend.com>\n'
+           b'Reply-To: "Reply, Desk" <reply@example.org>, Support (Team) <support@example.org>\n'
+           b'\nSynthetic body\n')
+
+    email = parse_bytes(raw)
+
+    assert email.sender == Address("Newsletter, Weekly", "newsletter@shared1.ccsend.com")
+    assert email.reply_to == [Address("Reply, Desk", "reply@example.org"),
+                              Address("Support", "support@example.org")]
+    assert email.parsing_warnings == []
+
+
 @pytest.mark.parametrize("address", ["broken", "@example.org", "sender@"])
 def test_incomplete_mailbox_does_not_claim_a_sender_domain(address):
     assert Address("", address).domain == ""

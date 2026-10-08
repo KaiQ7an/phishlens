@@ -86,10 +86,17 @@ class ParsedEmail:
     parsing_warnings: list[str] = field(default_factory=list)
 
 
-def _addresses(message: EmailMessage, name: str) -> list[Address]:
-    header = message.get(name)
-    if header is None:
+def _addresses(message: EmailMessage, name: str, warnings: list[str]) -> list[Address]:
+    # Header objects are parsed lazily when fetched. Inspect every occurrence,
+    # including duplicates that are not used for address recovery below.
+    headers = message.get_all(name, [])
+    if not headers:
         return []
+    if len(headers) > 1:
+        warnings.append(f"Duplicate {name} headers were detected; the recovered identity may be ambiguous.")
+    if any(getattr(header, "defects", ()) for header in headers):
+        warnings.append(f"{name} header contains parsing defects; the recovered address may be incomplete.")
+    header = headers[0]
     try:
         return [Address(a.display_name or "", a.addr_spec or "") for a in header.addresses]
     except AttributeError:  # malformed header: keep the raw value rather than drop it
@@ -181,14 +188,16 @@ def parse_bytes(raw: bytes, *, max_bytes: int = DEFAULT_MAX_BYTES) -> ParsedEmai
     except MessageError as error:
         raise EmailInputError(f"email could not be parsed: {error}") from error
     parts = _bounded_parts(message)
-    senders = _addresses(message, "From")
+    parsing_warnings: list[str] = []
+    senders = _addresses(message, "From", parsing_warnings)
     parsed = ParsedEmail(
         subject=str(message.get("Subject", "")),
         date=str(message.get("Date", "")),
         sender=senders[0] if senders else None,
-        reply_to=_addresses(message, "Reply-To"),
+        reply_to=_addresses(message, "Reply-To", parsing_warnings),
         return_path=str(message.get("Return-Path", "")).strip().strip("<>"),
         authentication_results=[str(h) for h in message.get_all("Authentication-Results", [])],
+        parsing_warnings=parsing_warnings,
     )
 
     text_parts: list[str] = []

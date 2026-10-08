@@ -4,7 +4,7 @@ from html import escape
 import pytest
 
 from phishlens.analyzer import analyze
-from phishlens.message import Address, Attachment, ParsedEmail
+from phishlens.message import Address, Attachment, ParsedEmail, parse_bytes
 
 _AUTH = "mx.receiver.example; spf=pass; dkim=pass; dmarc=pass"
 _TRACKER = "https://campaign.rs6.net/tn.jsp?f=synthetic-token&c=sample&ch=sample"
@@ -194,4 +194,20 @@ def test_other_suspicious_headers_disable_routing_reductions(changes):
 
 def test_parsing_warning_keeps_normal_tracker_mismatch():
     report = analyze(mailing_email(html=tracked_link(), parsing_warnings=["Incomplete content."]))
+    assert finding(report, "url.anchor_mismatch").points == 30
+
+
+@pytest.mark.parametrize("identity", [
+    "From: bad local@shared1.ccsend.com\nReply-To: editor@club.example",
+    "From: news@shared1.ccsend.com\nReply-To: bad local@club.example",
+    "From: news@shared1.ccsend.com\nFrom: other@shared1.ccsend.com\nReply-To: editor@club.example",
+    "From: news@shared1.ccsend.com\nReply-To: editor@club.example\nReply-To: other@club.example",
+])
+def test_recovered_or_duplicate_identity_headers_disable_routing_reductions(identity):
+    raw = (identity + "\nAuthentication-Results: " + _AUTH
+           + "\nContent-Type: text/html; charset=utf-8\n\n" + tracked_link()).encode()
+    email = parse_bytes(raw)
+    report = analyze(email)
+    assert email.parsing_warnings
+    assert finding(report, "header.reply_to_mismatch").points == 15
     assert finding(report, "url.anchor_mismatch").points == 30
