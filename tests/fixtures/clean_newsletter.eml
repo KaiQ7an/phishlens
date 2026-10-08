@@ -1,0 +1,34 @@
+Authentication-Results: mx.receiver.example; spf=pass
+ smtp.mailfrom=mail.example.org; dkim=pass header.d=example.org; dmarc=pass
+ header.from=example.org
+From: Example Society News <news@example.org>
+To: Student <student@example.edu.au>
+Subject: This week at the Example Society
+Date: Tue, 06 Oct 2026 10:15:00 +1100
+Return-Path: <bounce@mail.example.org>
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============5745167907914821162=="
+Message-ID: <clean_newsletter@phishlens.test>
+
+--===============5745167907914821162==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Hi all,
+
+This week we have a coding workshop on Thursday and a social on Friday.
+Full details: https://www.example.org/events
+
+See you there!
+
+--===============5745167907914821162==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<p>Hi all,</p><p>This week we have a coding workshop on Thursday and a social=
+ on Friday.</p><p><a href=3D"https://www.example.org/events">Read the events =
+calendar</a></p>
+
+--===============5745167907914821162==--

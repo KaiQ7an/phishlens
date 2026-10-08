@@ -1,0 +1,20 @@
+Authentication-Results: mx.receiver.example; spf=fail
+ smtp.mailfrom=bulk-sender.example; dkim=none; dmarc=fail (p=REJECT)
+ header.from=monash.edu
+From: Monash IT Service Desk <servicedesk@monash.edu>
+To: Student <student@example.edu.au>
+Subject: Action required: verify your Monash account
+Date: Tue, 06 Oct 2026 10:15:00 +1100
+Reply-To: IT Desk <reset-desk@helpdesk-mail.example>
+Return-Path: <bounce@bulk-sender.example>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+Message-ID: <dmarc_spoof@phishlens.test>
+
+Dear student,
+
+Your password expires within 24 hours. To keep access, verify your account im=
+mediately at https://monash-account-verify.example/login
+
+Monash IT Service Desk

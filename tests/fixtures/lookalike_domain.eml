@@ -1,0 +1,15 @@
+Authentication-Results: mx.receiver.example; spf=pass
+ smtp.mailfrom=xn--mnash-jye.edu; dkim=pass header.d=xn--mnash-jye.edu;
+ dmarc=pass header.from=xn--mnash-jye.edu
+From: Monash University <sso@xn--mnash-jye.edu>
+To: Student <student@example.edu.au>
+Subject: Your Monash SSO session expires today
+Date: Tue, 06 Oct 2026 10:15:00 +1100
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+Message-ID: <lookalike_domain@phishlens.test>
+
+Hello,
+
+Sign in to keep your account active: https://login.xn--mnash-jye.edu/sso

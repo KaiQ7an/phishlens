@@ -1,0 +1,53 @@
+"""Social-engineering signals in the subject and body, in English and Chinese.
+
+Each signal fires at most once and reports the phrases that matched, so the
+reader can see exactly why it fired.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Signal:
+    code: str
+    severity: str
+    title: str
+    phrases: tuple[str, ...]
+
+
+SIGNALS: tuple[Signal, ...] = (
+    Signal("content.urgency", "low", "Creates time pressure", (
+        "urgent", "immediately", "within 24 hours", "within 48 hours", "final notice", "act now",
+        "account will be suspended", "account has been suspended", "expires today",
+        "立即", "立刻", "马上", "紧急", "24小时内", "24 小时内", "逾期", "冻结", "最后通知",
+    )),
+    Signal("content.credentials", "medium", "Asks for a password, code or identity details", (
+        "verify your account", "confirm your password", "reset your password", "enter your password",
+        "update your payment", "login to verify", "verification code", "one-time code",
+        "密码", "验证码", "登录验证", "账户验证", "身份证号", "银行卡号",
+    )),
+    Signal("content.payment", "medium", "Asks for money or an unusual payment method", (
+        "gift card", "wire transfer", "bank transfer", "bitcoin", "western union", "processing fee",
+        "转账", "汇款", "保证金", "手续费", "安全账户", "比特币",
+    )),
+    Signal("content.authority", "medium", "Claims to be police, a court or a government office", (
+        "police", "embassy", "consulate", "arrest warrant", "money laundering", "under investigation", "interpol",
+        "公安", "警察", "警官", "大使馆", "领事馆", "涉嫌", "洗钱", "通缉", "立案", "办案",
+    )),
+    Signal("content.secrecy", "high", "Tells you to keep it secret or cut off contact", (
+        "do not tell", "don't tell", "keep this confidential", "do not contact your family",
+        "保密", "不要告诉", "切勿告知", "不得透露", "断联", "不要联系家人",
+    )),
+)
+
+
+def find_signals(text: str) -> list[tuple[Signal, list[str]]]:
+    lowered = text.lower()
+    hits: list[tuple[Signal, list[str]]] = []
+    for signal in SIGNALS:
+        matched = [phrase for phrase in signal.phrases if phrase.lower() in lowered]
+        if matched:
+            hits.append((signal, matched))
+    return hits

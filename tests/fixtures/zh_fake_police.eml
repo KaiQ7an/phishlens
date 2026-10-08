@@ -1,0 +1,22 @@
+Authentication-Results: mx.receiver.example; spf=pass
+ smtp.mailfrom=cn-consulate-service.example; dkim=pass
+ header.d=cn-consulate-service.example; dmarc=pass
+ header.from=cn-consulate-service.example
+From: =?utf-8?b?5Lit5Zu96am75aKo5bCU5pys5oC76aKG5LqL6aaG?=
+ <notice@cn-consulate-service.example>
+To: Student <student@example.edu.au>
+Subject: =?utf-8?b?44CQ57Sn5oCl6YCa55+l44CR5oKo55qE5oqk54Wn5raJ5auM5LiA5a6X?=
+ =?utf-8?b?5rSX6ZKx5qGI5Lu2?=
+Date: Tue, 06 Oct 2026 10:15:00 +1100
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
+Message-ID: <zh_fake_police@phishlens.test>
+
+5oKo5aW9OgoK57uP5qC45p+lLOaCqOeahOaKpOeFp+a2ieWrjOS4gOWul+i3qOWig+a0l+mSseah
+iOS7tizlm73lhoXlhazlronmnLrlhbPlt7Lnq4vmoYjosIPmn6XjgILor7fmgqjlnKgyNOWwj+aX
+tuWGheiBlOezu+WKnuahiOitpuWumOivtOaYjuaDheWGtSzlkKbliJnlsIbooqvliJfkuLrpgJrn
+vInlr7nosaHjgIIKCuS4uumFjeWQiOiwg+afpSzmgqjpnIDopoHnvLTnurPkv53or4Hph5Es6LWE
+6YeR5bCG6L2s5YWl5a6J5YWo6LSm5oi3LOe7k+ahiOWQjumAgOi/mOOAguacrOahiOa2ieWPiuWb
+veWutuacuuWvhizor7fkuKXmoLzkv53lr4Ys5YiH5Yu/5ZGK55+l5a625Lq65oiW5a2m5qCh44CC
+Cgrlip7moYjogZTns7s6aHR0cHM6Ly9jbi1jb25zdWxhdGUtc2VydmljZS5leGFtcGxlL2Nhc2UK

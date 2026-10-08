@@ -1,0 +1,41 @@
+Authentication-Results: mx.receiver.example; spf=softfail
+ smtp.mailfrom=invoices-portal.example; dkim=pass
+ header.d=invoices-portal.example; dmarc=pass
+ header.from=invoices-portal.example
+From: Accounts Payable <ap@invoices-portal.example>
+To: Student <student@example.edu.au>
+Subject: Overdue invoice 2026-10
+Date: Tue, 06 Oct 2026 10:15:00 +1100
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============6140857306948637142=="
+Message-ID: <suspicious_attachment@phishlens.test>
+
+--===============6140857306948637142==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Hello,
+
+Please find the overdue invoice attached. Payment by bank transfer is require=
+d immediately to avoid a processing fee.
+
+Accounts Payable
+
+--===============6140857306948637142==
+Content-Type: application/octet-stream
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="Invoice_2026-10.pdf.exe"
+MIME-Version: 1.0
+
+UGhpc2hMZW5zIHRlc3QgZml4dHVyZS4gVGhpcyBpcyBwbGFpbiB0ZXh0LCBub3QgYSBwcm9ncmFt
+Lgo=
+
+--===============6140857306948637142==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment; filename="remittance.html"
+MIME-Version: 1.0
+
+<html><body><p>PhishLens test fixture page.</p></body></html>
+
+--===============6140857306948637142==--
