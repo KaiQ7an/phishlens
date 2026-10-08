@@ -144,8 +144,9 @@ accuracy on real email.
 - The topmost `Authentication-Results` header for recorded SPF, DKIM and DMARC
   verdicts; comments and quoted supporting values are not treated as results.
   Missing, malformed, or conflicting authentication information is reported.
-- Sender display names, lookalike sender domains, differing Reply-To domains,
-  and Return-Path differences.
+- Sender display names, lookalike sender domains, Return-Path differences, and
+  every Reply-To address: differing domains, addresses without a usable domain,
+  and Reply-To domains that imitate a protected brand.
 - HTML and plain-text links: misleading anchor text, lookalike domains,
   punycode, mixed scripts, bare IP addresses, URL shorteners, user-info tricks,
   insecure login-style URLs, and form destinations.
@@ -167,6 +168,27 @@ accuracy on real email.
 Points are added and capped at 100. Scores of 0–19 are **low risk**, 20–49 are
 **suspicious**, and 50–100 are **high risk**. The score is a rule-based indicator,
 not a probability. Passing authentication does not subtract risk points.
+
+One narrow calibration applies to a single bulk-mail pattern. It is used only
+when the From domain is Constant Contact's documented shared sending domain
+(`ccsend.com`), the topmost header records SPF, DKIM and DMARC all as `pass`
+with no authentication or parsing warnings, and the email has no other medium
+or high content, attachment or header finding. Then:
+
+- A Reply-To on a different, ordinary domain is reported as **low** instead of
+  medium, because the service rewrites From addresses. Malformed, IP-address,
+  mixed-script or lookalike reply targets keep their normal severity, and every
+  reply address is still checked.
+- An HTML link whose text names another site but which goes through the
+  service's documented click-tracking route (`https://*.rs6.net/tn.jsp?f=…`,
+  matched exactly) is reported as a **low** "final destination is unverified"
+  warning instead of a high anchor mismatch. Link text naming a protected brand,
+  a lookalike, a mixed-script domain or a login page keeps the high mismatch,
+  and form destinations are never reduced.
+
+This is routing context only. It does not verify the sender, the tracking token
+or the final destination, and it never removes authentication failures or any
+other finding.
 
 ## Safety model and limitations
 
