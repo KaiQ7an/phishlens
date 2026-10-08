@@ -14,19 +14,31 @@ package has not been published. Formal release is deferred until final review.
 ## Quick start
 
 Requires Python 3.11 or newer. Development has been checked on Python 3.14.8.
-From the project directory, run:
+On macOS or Linux, install the current source version:
 
 ```bash
+git clone https://github.com/KaiQ7an/phishlens.git
+cd phishlens
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install '.[dev]'
+python -m pip install .
 
 phishlens analyze tests/fixtures/clean_newsletter.eml
 phishlens analyze tests/fixtures/zh_fake_police.eml
-python -m pytest -q
 ```
 
-Installing the development dependencies needs access to a Python package index.
+If you already have the repository, start from its directory and skip cloning.
+On Windows PowerShell, use the virtual environment's executables directly:
+
+```powershell
+git clone https://github.com/KaiQ7an/phishlens.git
+cd phishlens
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install .
+.\.venv\Scripts\phishlens.exe analyze .\tests\fixtures\clean_newsletter.eml
+```
+
+Cloning and installing build/development dependencies need network access.
 Email analysis itself makes no network calls. The normal installation above
 copies the package into the virtual environment; reinstall after editing source:
 
@@ -45,6 +57,21 @@ phishlens analyze /path/to/message.eml --fail-on high
 phishlens analyze /path/to/message.eml --max-size-mb 50
 python -m phishlens analyze /path/to/message.eml
 ```
+
+Export the complete original message as `.eml`, including its headers and MIME
+body. A screenshot or copied body text cannot preserve authentication headers,
+actual link destinations, or attachments for analysis. Keep personal messages
+and reports outside the repository; for example, on macOS:
+
+```bash
+cd ~/Desktop/Projects/phishlens
+source .venv/bin/activate
+phishlens analyze "$HOME/Downloads/message.eml"
+phishlens analyze "$HOME/Downloads/message.eml" --json > "$HOME/Downloads/phishlens-report.json"
+```
+
+Replace the example path with your exported file. A successful normal analysis
+prints its verdict and the evidence, even when the verdict is high risk.
 
 `--fail-on suspicious` fails for suspicious and high-risk verdicts;
 `--fail-on high` fails only for high-risk verdicts. Without `--fail-on`, a
