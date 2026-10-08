@@ -37,9 +37,29 @@
   outside route calibration. Forms or other medium/high URL findings disable
   routing reductions for the whole message, regardless of link order.
 
+### Detection
+
+- Read the sender display name together with the subject and body for content
+  signals, so authority claims made only in the name are caught. Add customs
+  (海关) to authority phrases and "do not call the police" (不要报警) to
+  secrecy phrases.
+- Treat bank-detail changes and parcel/customs fees as payment requests. Add
+  medium signals for money wanted before any meeting or inspection and for
+  requests to scan a QR code.
+- Treat SharePoint, OneDrive, Office 365, Microsoft 365 and Australia Post as
+  their brands in display names and domain tokens; add `sharepointonline.com`
+  to Microsoft's sending domains.
+- Flag archives whose password is given in the message text as high risk, and
+  raise attached HTML/SVG pages from medium to high.
+
 ### Validation
 
-- Expand the regression suite to 386 synthetic tests.
+- Add 36 labelled synthetic scenarios split into dev and holdout sets, with
+  `scripts/evaluate.py` reporting precision and recall per split. Dev recall
+  rose from 33% to 100% after the fixes above; holdout recall, never used for
+  tuning, rose from 17% to 33%. Remaining misses run as strict expected
+  failures.
+- Expand the regression suite to 436 synthetic tests.
 - Add CI for Linux Python 3.11–3.14 and macOS/Windows Python 3.14.
 - Build and smoke-test wheel/source archives using isolated installations
   outside the checkout without network access during installation.

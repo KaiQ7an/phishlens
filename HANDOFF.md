@@ -1,6 +1,6 @@
 # PhishLens 交接说明
 
-更新日期：2026-10-08。先阅读 [AGENTS.md](AGENTS.md)、[README.md](README.md) 和 [CHANGELOG.md](CHANGELOG.md)。
+更新日期：2026-10-09。先阅读 [AGENTS.md](AGENTS.md)、[README.md](README.md) 和 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 项目与当前阶段
 
@@ -33,6 +33,17 @@ PhishLens 是离线 `.eml` 钓鱼迹象分析 CLI，输出可解释的风险分�
 
 可见链接只接受普通 ASCII 站点名或标准端口 HTTP(S) URL；格式异常、百分号编码和非标准端口均不降权。From/Reply-To 解析缺陷或重复头部会产生警告并禁用校准。表单及其他中高风险 URL 会取消整封邮件的路由降权，与链接顺序无关。
 
+### 标注场景评估
+
+`tests/scenarios.py` 含 36 个先写标签、后跑规则的合成场景：dev 24 个用于发现和修正规则缺口，holdout 12 个**不得用于调参**。`python scripts/evaluate.py`（可加 `--markdown`/`--json`）按集合报告结果；钓鱼场景评为 suspicious 或 high 即算检出。
+
+| 集合 | 精确率 | 召回率 | 修正前召回率 |
+| --- | ---: | ---: | ---: |
+| dev | 92% | 100% | 33% |
+| holdout | 100% | 33% | 17% |
+
+dev 修正包括：显示名参与话术判断、海关/“不要报警”、银行账户变更与包裹/清关费、远程交易（人在海外、钥匙寄送）、扫码请求、SharePoint/OneDrive/Australia Post 品牌别名、正文给出密码的压缩包、HTML/SVG 附件升为 high。holdout 的提升只来自这些通用修正。剩余漏报（tax-refund、crypto-investment、macro-invoice、social-copyright-appeal）和 dev 误报 newsletter-tracked-url-text 记录在 `KNOWN_GAPS`，以 strict xfail 运行；修好后须同时删除对应条目。不要为让 holdout 通过而针对其文本加规则；需要新的未见数据时另写一批 holdout。
+
 ## 模块地图
 
 | 模块 / 目录 | 责任 |
@@ -47,6 +58,7 @@ PhishLens 是离线 `.eml` 钓鱼迹象分析 CLI，输出可解释的风险分�
 | `cli.py` / `__main__.py` | 安装命令、参数及退出码 |
 | `intel.py` | 离线接口占位；尚无外部信誉查询 |
 | `tests/` | 合成 fixtures 与回归测试 |
+| `tests/scenarios.py` / `scripts/evaluate.py` | 36 个已标注合成场景（dev/holdout）、`KNOWN_GAPS` 与精确率/召回率评估 |
 | `scripts/verify_distribution.py` | 检出目录外新环境中的 wheel/sdist 安装与 CLI 检查 |
 | `.github/workflows/ci.yml` | 跨版本/平台测试、构建和普通 CI 构件；不发布版本 |
 
@@ -85,15 +97,14 @@ python scripts/verify_distribution.py --dist-dir "$phishlens_dist_dir" --build-d
 
 ## 本轮最终验证记录
 
-- 已验证的代码提交：`3a2fe64413cb964ec613b86c8c6ee349ddfc33be`，已推送到 `origin/main`。
-- Python 3.14.8：源码测试与重装 wheel 后的安装版本测试均为 **386 passed**。
-- wheel/sdist 构建、`twine check` 及仓库外两个新环境中的离线包检查全部通过；`phishlens --version` 为 `0.1.0`，安装入口来自 `.venv` 的 `site-packages`。
-- 六封公开合成 fixture 结果保持不变：正常邮件 0，五封钓鱼场景均为 high。未把真实数据加入仓库，也未发布正式版本。
-- 上述代码基准的 [CI 运行](https://github.com/KaiQ7an/phishlens/actions/runs/37727234391) 六个任务全部通过：Linux Python 3.11–3.14、macOS/Windows Python 3.14，均包含测试和独立包安装检查。Windows 跳过不支持的 FIFO 用例。
-- 本交接文件已加入源码分发清单并完成打包检查。文档提交位于已验证代码提交之后；接手时用 `git status --short`、`git log origin/main..HEAD` 核对工作区和待推送提交。
+- 规则修正位于提交 `5472b8a` 及之前，本文件所在文档提交之后推送到 `origin/main`。
+- Python 3.14.8 重装 wheel 后：**431 passed, 5 xfailed**（xfail 为已记录的已知缺口）。
+- wheel/sdist 构建、`twine check` 及仓库外两个新环境中的离线包检查全部通过；sdist 包含场景与评估脚本。
+- 六封公开 fixture：正常邮件 0；五封钓鱼均为 high（suspicious_attachment 因 HTML 附件升级为 85）。README 示例输出已按显示名参与判断后的证据更新。
+- 上一个已验证 CI 运行见 [CI 运行](https://github.com/KaiQ7an/phishlens/actions/runs/37727234391)；本轮推送后的 CI 结果需在 GitHub Actions 中核对。
 
 ## 下一步优先级
 
-1. 增加独立标注的合成正常/攻击场景，先确定预期再评估规则；覆盖误报、漏报、供应商边界、畸形邮件与兼容性，避免只重复现有演示样例。
+1. 已完成第一批 dev/holdout 标注场景。下一步：将剩余 holdout 漏报类型作为新的 dev 问题研究（避免直接照抄 holdout 文本），再另写一批全新的 holdout 场景检验泛化；补充误报场景（尤其是正常的付款、扫码登录和含密码说明的工作邮件）。
 2. 明确许可证，完成陌生用户安装和报告理解的最终检查，再单独执行正式发布步骤。正式发布仍保持延后。
 3. 后续可研究更完整的离线域名数据、可配置品牌/语言规则和批量报告。公开 Web 服务或外部信誉查询属于新范围，不能悄悄加入当前离线 CLI。

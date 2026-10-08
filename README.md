@@ -128,7 +128,7 @@ PhishLens report: tests/fixtures/zh_fake_police.eml
 
 Findings
   [HIGH   +30] Claims to be police or government but was not sent from a government domain
-               evidence: '公安', '警官', '涉嫌', '洗钱', '通缉'; sender cn-consulate-service.example
+               evidence: '公安', '警官', '领事馆', '涉嫌', '洗钱'; sender cn-consulate-service.example
   [HIGH   +30] Tells you to keep it secret or cut off contact
                evidence: '保密', '切勿告知'
   [MEDIUM +15] Asks for money or an unusual payment method
@@ -154,9 +154,14 @@ accuracy on real email.
   insecure login-style URLs, and form destinations.
 - Attachment filenames and extensions: executables, double extensions, macro
   documents, HTML/SVG files, disk images, and archives, including named inline
-  MIME parts.
-- English and Chinese language suggesting urgency, authority, secrecy, or
-  unusual payments. Keywords inside URLs are excluded from this check.
+  MIME parts. An archive whose password is given in the message text is flagged
+  as high risk; the archive itself is never opened.
+- English and Chinese language suggesting urgency, authority, secrecy, unusual
+  payments or bank-detail changes, money wanted before any meeting or
+  inspection, and requests to scan a QR code. The sender's display name is
+  read with the subject and body; keywords inside URLs are excluded.
+- Product names such as SharePoint, OneDrive and Australia Post count as their
+  brands in display names and domains.
 
 ## Scoring
 
@@ -200,6 +205,29 @@ The service documents [From rewriting and Reply-To preservation](https://knowled
 and [its web domains](https://knowledgebase.constantcontact.com/email-digital-marketing/articles/KnowledgeBase/5800-Safelist-Constant-Contact-web-domains-in-a-security-program?lang=en_US).
 Its support community also describes [intermediate click-tracking links](https://community.constantcontact.com/t5/Product-Ideas/Turn-off-link-tracking-in-campaigns/idi-p/334097).
 
+## Evaluation
+
+`scripts/evaluate.py` scores 36 labelled synthetic scenarios in
+`tests/scenarios.py` (`--markdown` or `--json` for other formats). Each
+scenario's label was written before the rules were run against it. Scenarios
+are split into a **dev** set, used to find and fix rule gaps, and a **holdout**
+set, which is never used for tuning and shows how the rules handle messages
+they were not shaped around. A phishing scenario counts as detected when it
+scores suspicious or high.
+
+| Split | Scenarios | Precision | Recall | Before dev fixes (recall) |
+| --- | ---: | ---: | ---: | ---: |
+| dev | 24 | 92% | 100% | 33% |
+| holdout | 12 | 100% | 33% | 17% |
+
+The gap between dev and holdout recall is the honest result: the rules now
+cover the dev scenarios but still miss most unseen phishing (tax refunds,
+investment scams, macro invoices, copyright appeals). Known misses and the
+one dev false alarm, a newsletter whose tracked link shows the final URL as
+its text, are listed in `KNOWN_GAPS` and run as strict expected failures, so a
+fix or regression is reported by the test suite. These are small synthetic
+sets, not measurements on real mail.
+
 ## Safety model and limitations
 
 - Analysis reads only the file you provide. There is no inbox connection,
@@ -241,10 +269,11 @@ python -m pip install '.[dev]'
 python -m pytest -q
 ```
 
-The current suite has 386 tests for message parsing, input limits, malformed MIME,
+The current suite has 436 tests (including 5 expected failures for known
+gaps) for message parsing, input limits, malformed MIME,
 text decoding, authentication-header ambiguity, domains, links, inline/container
 attachments, language signals, scoring, mailing-route boundaries, safe report
-rendering, and CLI output.
+rendering, CLI output, and the labelled evaluation scenarios.
 Fixtures use synthetic messages and reserved example domains, with no real inbox
 data. The fixture generator is `tests/fixtures/build_fixtures.py`.
 
