@@ -9,10 +9,10 @@ from pathlib import Path
 from . import attachments as attachment_rules
 from .auth import AuthVerdicts, parse_authentication_results
 from .content import find_signals
-from .domains import (PROTECTED_BRANDS, find_lookalike, is_government, is_ip,
+from .domains import (PROTECTED_BRANDS, PROTECTED_DOMAINS, find_lookalike, is_government, is_ip,
                       is_mixed_script, same_site, to_unicode)
 from .intel import OfflineIntel, ThreatIntel
-from .mailings import mailing_service
+from .mailings import mailing_service, tracking_service
 from .message import DEFAULT_MAX_BYTES, Attachment, ParsedEmail, parse_file
 from .scoring import Finding, risk_level, sort_findings, total_score
 from .urls import URL_SHORTENERS, Link, extract_text_links, parse_html, strip_urls
@@ -151,7 +151,8 @@ def _header_findings(email: ParsedEmail, provider: str | None = None) -> list[Fi
     return findings
 
 
-def _link_findings(links: list[Link]) -> list[Finding]:
+def _link_findings(links: list[Link], provider: str | None = None,
+                   sender_domain: str = "") -> list[Finding]:
     findings: list[Finding] = []
     seen: set[tuple[str, str]] = set()
 
@@ -168,8 +169,20 @@ def _link_findings(links: list[Link]) -> list[Finding]:
             continue
         claimed = link.anchor_mismatch()
         if claimed:
-            add("url.anchor_mismatch", "high",
-                f"Link text shows {claimed} but the link goes to {to_unicode(host)}", link.url, host)
+            route_context = (provider and link.source == "html"
+                             and not link.anchor_looks_like_login
+                             and not any(same_site(claimed, domain) for domain in PROTECTED_DOMAINS)
+                             and find_lookalike(claimed) is None and not is_mixed_script(claimed)
+                             and tracking_service(link.url, sender_domain) == provider)
+            if route_context:
+                # Separate codes prevent a low routing warning from deduping
+                # away a later high mismatch to the same intermediary host.
+                add("url.tracking_destination_unverified", "low",
+                    f"Link text shows {claimed} via a {provider} tracking route; final destination is unverified",
+                    link.url, host)
+            else:
+                add("url.anchor_mismatch", "high",
+                    f"Link text shows {claimed} but the link goes to {to_unicode(host)}", link.url, host)
         if link.has_userinfo:
             add("url.userinfo", "high", "The link hides its real destination after an '@'", link.url, host)
         if is_ip(host):
@@ -218,12 +231,22 @@ def _attachment_findings(email: ParsedEmail) -> list[Finding]:
 def analyze(email: ParsedEmail, source: str = "", intel: ThreatIntel | None = None) -> Report:
     intel = intel or OfflineIntel()  # week 2: reputation lookups plug in here
     html_links, visible_html_text = parse_html(email.html) if email.html else ([], "")
+    html_urls = {link.url for link in html_links}
     links = html_links + [l for l in extract_text_links(email.text)
-                          if l.url not in {h.url for h in html_links}]
+                          if l.url not in html_urls]
     auth = parse_authentication_results(email.authentication_results)
-    provider = _mailing_context(email, auth)
-    findings = (_auth_findings(auth) + _header_findings(email, provider) + _link_findings(links)
-                + _content_findings(email, visible_html_text) + _attachment_findings(email))
+    content = _content_findings(email, visible_html_text)
+    attachments = _attachment_findings(email)
+    provider = (None if any(f.severity in ("medium", "high") for f in content + attachments)
+                else _mailing_context(email, auth))
+    headers = _header_findings(email, provider)
+    if provider and any(f.severity in ("medium", "high") and f.code != "header.reply_to_mismatch"
+                        for f in headers):
+        provider = None
+        headers = _header_findings(email)
+    findings = (_auth_findings(auth) + headers
+                + _link_findings(links, provider, email.sender.domain if email.sender else "")
+                + content + attachments)
     return Report(source=source, email=email, auth=auth, findings=sort_findings(findings), links=links)
 
 

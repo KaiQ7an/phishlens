@@ -55,6 +55,11 @@ class Link:
     def looks_like_login(self) -> bool:
         return bool(_LOGIN_HINT_RE.search(self.url) or _LOGIN_HINT_RE.search(self.anchor_text))
 
+    @property
+    def anchor_looks_like_login(self) -> bool:
+        """Visible login hints, without treating opaque tracking tokens as prose."""
+        return bool(_LOGIN_HINT_RE.search(self.anchor_text))
+
     def anchor_host(self) -> str | None:
         """The domain the visible link text claims, if the text looks like a URL."""
         match = _DOMAIN_LIKE_RE.match(self.anchor_text.strip())
@@ -109,10 +114,10 @@ class _HTMLCollector(HTMLParser):
         if tag in ("script", "style"):
             self._skip += 1
         elif tag == "a" and attributes.get("href"):
-            self._href = attributes["href"].strip()
+            self._href = attributes["href"]
             self._anchor = []
         elif tag == "form" and attributes.get("action"):
-            self.links.append(Link(attributes["action"].strip(), "", "form"))
+            self.links.append(Link(attributes["action"], "", "form"))
         if tag in self._BLOCK_TAGS:
             self.text.append("\n")
 
@@ -120,7 +125,7 @@ class _HTMLCollector(HTMLParser):
         if tag in ("script", "style") and self._skip:
             self._skip -= 1
         elif tag == "a" and self._href is not None:
-            if self._href.lower().startswith(("http://", "https://")):
+            if self._href.lstrip().lower().startswith(("http://", "https://")):
                 self.links.append(Link(self._href, " ".join("".join(self._anchor).split()), "html"))
             self._href = None
 
