@@ -24,7 +24,7 @@ MULTI_LEVEL_SUFFIXES = frozenset({
 # Brands whose names phishers borrow, with the domains that legitimately send for them.
 PROTECTED_BRANDS: dict[str, tuple[str, ...]] = {
     "monash": ("monash.edu",),
-    "microsoft": ("microsoft.com", "office.com", "outlook.com", "live.com"),
+    "microsoft": ("microsoft.com", "office.com", "outlook.com", "live.com", "sharepointonline.com"),
     "google": ("google.com", "gmail.com"),
     "apple": ("apple.com", "icloud.com"),
     "paypal": ("paypal.com",),
@@ -32,6 +32,17 @@ PROTECTED_BRANDS: dict[str, tuple[str, ...]] = {
     "auspost": ("auspost.com.au",),
     "mygov": ("my.gov.au",),
 }
+# Product names that stand for a protected brand in display names and domains.
+BRAND_ALIASES: dict[str, tuple[str, ...]] = {
+    "microsoft": ("sharepoint", "onedrive", "office 365", "microsoft 365"),
+    "auspost": ("australia post",),
+}
+
+
+def brand_terms(brand: str) -> tuple[str, ...]:
+    return (brand,) + BRAND_ALIASES.get(brand, ())
+
+
 PROTECTED_DOMAINS = frozenset(d for domains in PROTECTED_BRANDS.values() for d in domains)
 
 GOVERNMENT_SUFFIXES = ("gov", "mil", "gov.au", "gov.cn", "gov.uk", "govt.nz", "gov.hk", "gov.sg", "go.jp")
@@ -157,6 +168,7 @@ def find_lookalike(host: str) -> Lookalike | None:
             return Lookalike(legit, "typosquat")
     tokens = set(name.split("-"))
     for brand, domains in PROTECTED_BRANDS.items():
-        if len(brand) >= 5 and brand in tokens:
+        terms = [term.replace(" ", "") for term in brand_terms(brand)]
+        if any(len(term) >= 5 and term in tokens for term in terms):
             return Lookalike(domains[0], "brand-keyword")
     return None

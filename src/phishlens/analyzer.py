@@ -10,8 +10,8 @@ from urllib.parse import urlsplit
 from . import attachments as attachment_rules
 from .auth import AuthVerdicts, parse_authentication_results
 from .content import find_signals
-from .domains import (PROTECTED_BRANDS, PROTECTED_DOMAINS, find_lookalike, is_government, is_ip,
-                      is_mixed_script, same_site, to_unicode)
+from .domains import (PROTECTED_BRANDS, PROTECTED_DOMAINS, brand_terms, find_lookalike, is_government,
+                      is_ip, is_mixed_script, same_site, to_unicode)
 from .intel import OfflineIntel, ThreatIntel
 from .mailings import mailing_service, tracking_service
 from .message import DEFAULT_MAX_BYTES, Attachment, ParsedEmail, parse_file
@@ -132,9 +132,10 @@ def _header_findings(email: ParsedEmail, provider: str | None = None) -> list[Fi
 
     name = sender.display_name.lower()
     for brand, domains in PROTECTED_BRANDS.items():
-        if re.search(rf"\b{re.escape(brand)}\b", name) and not any(same_site(sender.domain, d) for d in domains):
+        term = next((t for t in brand_terms(brand) if re.search(rf"\b{re.escape(t)}\b", name)), None)
+        if term and not any(same_site(sender.domain, d) for d in domains):
             findings.append(Finding("header.display_name_brand", "high",
-                                    f"The display name says '{brand.title()}' but the address is not one of its domains",
+                                    f"The display name says '{term.title()}' but the address is not one of {brand.title()}'s domains",
                                     str(sender)))
             break
     for match in _EMAIL_IN_TEXT_RE.finditer(sender.display_name):

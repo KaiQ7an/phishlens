@@ -110,3 +110,17 @@ def test_qr_code_requests_are_flagged():
     for body in ("Scan the QR code to continue.", "请扫描二维码完成认证。"):
         codes = {f.code for f in analyze(_email("IT", "mail-host.example", body)).findings}
         assert "content.qr_code" in codes, body
+
+
+def test_microsoft_product_names_stand_for_the_microsoft_brand():
+    codes = {f.code for f in analyze(_email("Jordan via SharePoint", "files-share.example", "Shared a file.")).findings}
+    assert "header.display_name_brand" in codes
+    codes = {f.code for f in analyze(_email("Jordan via SharePoint", "sharepointonline.com", "Shared a file.")).findings}
+    assert "header.display_name_brand" not in codes
+
+
+def test_product_names_in_domains_are_brand_keywords():
+    from phishlens.domains import find_lookalike
+    assert find_lookalike("onedrive-files.example").imitates == "microsoft.com"
+    assert find_lookalike("australiapost-tracking.example").imitates == "auspost.com.au"
+    assert find_lookalike("my-sharepoint.example").technique == "brand-keyword"
