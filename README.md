@@ -108,6 +108,8 @@ attachment bytes, and comes with an explicit warning.
 If a charset is unknown or text bytes are damaged, PhishLens preserves as much
 text as it can and includes a warning in both text and JSON reports. Invalid
 base64 and malformed or truncated multipart content also produce warnings.
+Defective or repeated From and Reply-To headers produce warnings while keeping
+the first header's recovered addresses available for analysis.
 Warnings do not add risk points or change exit status: they mean analysis may be
 incomplete, so a low score deserves extra caution.
 
@@ -173,7 +175,7 @@ One narrow calibration applies to a single bulk-mail pattern. It is used only
 when the From domain is Constant Contact's documented shared sending domain
 (`ccsend.com`), the topmost header records SPF, DKIM and DMARC all as `pass`
 with no authentication or parsing warnings, and the email has no other medium
-or high content, attachment or header finding. Then:
+or high content, attachment, header or URL finding. Then:
 
 - A Reply-To on a different, ordinary domain is reported as **low** instead of
   medium, because the service rewrites From addresses. Malformed, IP-address,
@@ -184,11 +186,19 @@ or high content, attachment or header finding. Then:
   matched exactly) is reported as a **low** "final destination is unverified"
   warning instead of a high anchor mismatch. Link text naming a protected brand,
   a lookalike, a mixed-script domain or a login page keeps the high mismatch,
-  and form destinations are never reduced.
+  as does malformed URL text. Only plain ASCII site names and HTTP(S) URLs with
+  standard ports qualify; percent-encoded text is outside this narrow pattern.
+  A form or another medium/high URL finding disables both reductions for the
+  entire email, regardless of link order.
 
 This is routing context only. It does not verify the sender, the tracking token
 or the final destination, and it never removes authentication failures or any
 other finding.
+
+The service documents [From rewriting and Reply-To preservation](https://knowledgebase.constantcontact.com/email-digital-marketing/articles/KnowledgeBase/51400-How-your-From-email-address-may-be-impacted-by-the-latest-email-authentication-requirements%3Flang%3Den_US),
+[shared sender subdomains](https://knowledgebase.constantcontact.com/email-digital-marketing/articles/KnowledgeBase/53013-Customize-the-subdomain-for-your-From-email-address?lang=en_US),
+and [its web domains](https://knowledgebase.constantcontact.com/email-digital-marketing/articles/KnowledgeBase/5800-Safelist-Constant-Contact-web-domains-in-a-security-program?lang=en_US).
+Its support community also describes [intermediate click-tracking links](https://community.constantcontact.com/t5/Product-Ideas/Turn-off-link-tracking-in-campaigns/idi-p/334097).
 
 ## Safety model and limitations
 
@@ -231,9 +241,10 @@ python -m pip install '.[dev]'
 python -m pytest -q
 ```
 
-The current suite has 150 tests for message parsing, input limits, malformed MIME,
+The current suite has 386 tests for message parsing, input limits, malformed MIME,
 text decoding, authentication-header ambiguity, domains, links, inline/container
-attachments, language signals, scoring, safe report rendering, and CLI output.
+attachments, language signals, scoring, mailing-route boundaries, safe report
+rendering, and CLI output.
 Fixtures use synthetic messages and reserved example domains, with no real inbox
 data. The fixture generator is `tests/fixtures/build_fixtures.py`.
 
@@ -270,6 +281,7 @@ The verification installs use predownloaded build wheels and `--no-index`.
 CI retains ordinary build artifacts for inspection and does not publish a
 GitHub Release or upload to PyPI. See [CHANGELOG.md](CHANGELOG.md) for unreleased
 changes.
+See [HANDOFF.md](HANDOFF.md) for maintainer context and the next work session.
 
 ### macOS editable-install troubleshooting
 

@@ -8,6 +8,8 @@
   nonblocking rejection of special files, and MIME depth/part limits.
 - Preserve recoverable text with warnings for unknown charsets, invalid base64,
   and malformed multipart content.
+- Surface parsing defects and repeated From/Reply-To headers while retaining
+  the first identity header's recovered addresses.
 - Parse authentication methods only from complete topmost-header clauses;
   ignore comments and quoted values, and surface ambiguous or malformed claims.
 - Mark authentication results as recorded and unverified in text/JSON output.
@@ -31,10 +33,13 @@
   warning instead of a high mismatch. Malformed, IP, mixed-script and lookalike
   reply targets, and brand, lookalike, mixed-script or login-style link text,
   keep their normal severity.
+- Keep malformed visible URLs, nonstandard ports and percent-encoded link text
+  outside route calibration. Forms or other medium/high URL findings disable
+  routing reductions for the whole message, regardless of link order.
 
 ### Validation
 
-- Expand the regression suite to 349 synthetic tests.
+- Expand the regression suite to 386 synthetic tests.
 - Add CI for Linux Python 3.11–3.14 and macOS/Windows Python 3.14.
 - Build and smoke-test wheel/source archives using isolated installations
   outside the checkout without network access during installation.
