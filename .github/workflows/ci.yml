@@ -38,7 +38,9 @@ jobs:
       - name: Build source and wheel distributions
         run: python -m build
       - name: Prepare offline source build dependencies
-        run: python -m pip download --only-binary=:all: --dest "${{ runner.temp }}/phishlens-build-deps" "setuptools>=68" wheel
+        run: >-
+          python -m pip download --only-binary=:all:
+          --dest "${{ runner.temp }}/phishlens-build-deps" "setuptools>=68" wheel
       - name: Verify distributions in fresh environments outside checkout
         run: python scripts/verify_distribution.py --build-deps "${{ runner.temp }}/phishlens-build-deps"
       - name: Keep validated packages as CI artifacts
