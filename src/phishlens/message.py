@@ -56,8 +56,8 @@ class Address:
 
     @property
     def domain(self) -> str:
-        _, _, domain = self.address.rpartition("@")
-        return domain.lower().rstrip(".")
+        local, separator, domain = self.address.rpartition("@")
+        return domain.lower().rstrip(".") if separator and local and domain else ""
 
     def __str__(self) -> str:
         return f"{self.display_name} <{self.address}>" if self.display_name else self.address

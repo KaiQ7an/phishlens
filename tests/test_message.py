@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from phishlens.message import (DEFAULT_MAX_BYTES, MAX_MIME_DEPTH, MAX_MIME_PARTS,
+from phishlens.message import (DEFAULT_MAX_BYTES, MAX_MIME_DEPTH, MAX_MIME_PARTS, Address,
                               EmailInputError, parse_bytes, parse_file)
 
 
@@ -166,6 +166,11 @@ def test_missing_from_header():
     email = parse_bytes(b"Subject: hi\n\nbody\n")
     assert email.sender is None
     assert email.text.strip() == "body"
+
+
+@pytest.mark.parametrize("address", ["broken", "@example.org", "sender@"])
+def test_incomplete_mailbox_does_not_claim_a_sender_domain(address):
+    assert Address("", address).domain == ""
 
 
 def test_size_limit_accepts_exact_boundary_and_rejects_one_extra_byte(tmp_path):
