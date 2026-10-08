@@ -58,3 +58,13 @@ def test_score_is_capped_and_levelled():
     findings = [Finding("x", "high", "t")] * 5
     assert total_score(findings) == 100
     assert risk_level(0) == "low" and risk_level(20) == "suspicious" and risk_level(50) == "high"
+
+
+def test_unknown_charset_does_not_hide_social_engineering():
+    raw = (b"Authentication-Results: mx.receiver.example; spf=pass; dkim=pass; dmarc=pass\n"
+           b"From: test@example.org\nContent-Type: text/plain; charset=unknown-charset\n\n"
+           + "紧急：保证金需要转账".encode())
+    report = analyze(parse_bytes(raw))
+    assert report.email.parsing_warnings
+    assert {f.code for f in report.findings} == {"content.urgency", "content.payment"}
+    assert report.score == 20

@@ -12,7 +12,7 @@ from .content import find_signals
 from .domains import (PROTECTED_BRANDS, find_lookalike, is_government, is_ip,
                       is_mixed_script, same_site, to_unicode)
 from .intel import OfflineIntel, ThreatIntel
-from .message import Attachment, ParsedEmail, parse_file
+from .message import DEFAULT_MAX_BYTES, Attachment, ParsedEmail, parse_file
 from .scoring import Finding, risk_level, sort_findings, total_score
 from .urls import URL_SHORTENERS, Link, extract_text_links, parse_html, strip_urls
 
@@ -190,5 +190,6 @@ def analyze(email: ParsedEmail, source: str = "", intel: ThreatIntel | None = No
     return Report(source=source, email=email, auth=auth, findings=sort_findings(findings), links=links)
 
 
-def analyze_file(path: str | Path, intel: ThreatIntel | None = None) -> Report:
-    return analyze(parse_file(path), source=str(path), intel=intel)
+def analyze_file(path: str | Path, intel: ThreatIntel | None = None,
+                 *, max_bytes: int = DEFAULT_MAX_BYTES) -> Report:
+    return analyze(parse_file(path, max_bytes=max_bytes), source=str(path), intel=intel)

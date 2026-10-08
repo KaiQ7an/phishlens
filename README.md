@@ -39,6 +39,7 @@ Export an individual email as `.eml`, then pass its path to PhishLens:
 phishlens analyze /path/to/message.eml
 phishlens analyze /path/to/message.eml --json > report.json
 phishlens analyze /path/to/message.eml --fail-on high
+phishlens analyze /path/to/message.eml --max-size-mb 50
 python -m phishlens analyze /path/to/message.eml
 ```
 
@@ -46,15 +47,28 @@ python -m phishlens analyze /path/to/message.eml
 `--fail-on high` fails only for high-risk verdicts. Without `--fail-on`, a
 successful analysis exits with status 0 regardless of its verdict.
 
+The default file limit is **25 MiB** (26,214,400 bytes). Use `--max-size-mb`
+with a positive whole number to change it; one unit is 1,048,576 bytes. The tool
+accepts regular files, including symlinks to regular files, and rejects empty
+messages, pipes, and device files. It also rejects MIME trees with more than
+1,000 parts (including the root) or a nesting depth above 30.
+
 | Exit status | Meaning |
 | --- | --- |
 | 0 | Analysis completed below the requested threshold, or no threshold was set |
-| 1 | The input file could not be read |
+| 1 | The input could not be read, was empty, or exceeded supported input limits |
 | 2 | The risk threshold was reached, or command-line arguments were invalid |
 
 JSON reports contain the source path, subject, sender, recorded authentication
 results, score, risk level, findings, extracted links, and attachment metadata
-including full SHA-256 hashes.
+including full SHA-256 hashes. The `parsing_warnings` array is empty for messages
+with no detected parsing issues.
+
+If a charset is unknown or text bytes are damaged, PhishLens preserves as much
+text as it can and includes a warning in both text and JSON reports. Invalid
+base64 and malformed or truncated multipart content also produce warnings.
+Warnings do not add risk points or change exit status: they mean analysis may be
+incomplete, so a low score deserves extra caution.
 
 ## Example
 
@@ -129,9 +143,11 @@ not a probability. Passing authentication does not subtract risk points.
 - Low risk means few recognized signals, not proof that an email is safe.
   Government-looking domains and authentication passes do not establish the
   legitimacy of the sender's claims.
-- Files and MIME payloads are read into memory without size limits. This MVP is
-  intended for local inspection, not an exposed service accepting arbitrary
-  uploads.
+- Input size is checked before parsing, with a bounded read to handle files that
+  grow during reading. MIME part/depth limits are checked after the standard
+  library parser builds the message. Parsing and decoding still use memory, and
+  these checks are not a hard memory or runtime sandbox. This tool is intended
+  for local inspection, not an exposed service accepting arbitrary uploads.
 - Reports can include sensitive subjects, addresses, URLs, and filenames.
   Keep real emails and generated reports out of public repositories.
 
@@ -143,8 +159,9 @@ python -m pip install '.[dev]'
 python -m pytest -q
 ```
 
-The current suite has 64 tests for message parsing, authentication headers,
-domains, links, attachment rules, language signals, scoring, and CLI output.
+The current suite has 91 tests for message parsing, input limits, malformed MIME,
+text decoding, authentication headers, domains, links, attachment rules, language
+signals, scoring, and CLI output.
 Fixtures use synthetic messages and reserved example domains, with no real inbox
 data. The fixture generator is `tests/fixtures/build_fixtures.py`.
 
@@ -175,9 +192,10 @@ phishlens --version
 ## Roadmap
 
 - **Current MVP:** offline `.eml` analysis, explained text/JSON reports, English
-  and Chinese rules, and synthetic regression fixtures.
-- **Next:** bounded input handling, more malformed-message cases, and a stronger
-  policy for identifying trusted authentication headers.
+  and Chinese rules, synthetic regression fixtures, bounded file input, MIME
+  structure limits, and visible parsing warnings.
+- **Next:** a stronger policy for identifying trusted authentication headers
+  and further malformed-message coverage.
 - **Later:** broader domain data and configurable brand/language rules, plus
   batch analysis and report comparison.
 - **Optional future work:** explicit opt-in reputation lookups with caching and

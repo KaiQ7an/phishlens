@@ -18,6 +18,7 @@ def to_dict(report: Report) -> dict:
         "from": str(email.sender) if email.sender else None,
         "date": email.date,
         "authentication": asdict(report.auth) if report.auth else None,
+        "parsing_warnings": email.parsing_warnings,
         "score": report.score,
         "level": report.level,
         "findings": [dict(asdict(f), points=f.points) for f in report.findings],
@@ -42,6 +43,10 @@ def to_text(report: Report) -> str:
         f"  Verdict : {_LEVEL_LABEL[report.level]}  (score {report.score}/100)",
         "",
     ]
+    if email.parsing_warnings:
+        lines.append("Parsing warnings (analysis may be incomplete)")
+        lines.extend(f"  - {warning}" for warning in email.parsing_warnings)
+        lines.append("")
     if report.findings:
         lines.append("Findings")
         for f in report.findings:
