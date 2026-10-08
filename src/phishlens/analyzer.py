@@ -12,11 +12,13 @@ from .content import find_signals
 from .domains import (PROTECTED_BRANDS, find_lookalike, is_government, is_ip,
                       is_mixed_script, same_site, to_unicode)
 from .intel import OfflineIntel, ThreatIntel
+from .mailings import mailing_service
 from .message import DEFAULT_MAX_BYTES, Attachment, ParsedEmail, parse_file
 from .scoring import Finding, risk_level, sort_findings, total_score
 from .urls import URL_SHORTENERS, Link, extract_text_links, parse_html, strip_urls
 
 _EMAIL_IN_TEXT_RE = re.compile(r"[\w.+-]+@([\w-]+(?:\.[\w-]+)+)")
+_DNS_LABEL_RE = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", re.ASCII)
 
 _LOOKALIKE_TITLES = {
     "homoglyph": "uses lookalike characters to imitate",
@@ -75,7 +77,23 @@ def _auth_findings(auth: AuthVerdicts | None) -> list[Finding]:
     return findings
 
 
-def _header_findings(email: ParsedEmail) -> list[Finding]:
+def _mailing_context(email: ParsedEmail, auth: AuthVerdicts | None) -> str | None:
+    """Recorded passes permit routing context, never a sender-safety verdict."""
+    if (email.sender is None or auth is None or auth.warnings or email.parsing_warnings
+            or (auth.spf, auth.dkim, auth.dmarc) != ("pass", "pass", "pass")):
+        return None
+    return mailing_service(email.sender.domain)
+
+
+def _ordinary_reply_domain(domain: str) -> bool:
+    labels = domain.split(".")
+    return (len(domain) <= 253 and len(labels) >= 2
+            and all(_DNS_LABEL_RE.fullmatch(label) for label in labels)
+            and not is_ip(domain) and not is_mixed_script(domain)
+            and find_lookalike(domain) is None)
+
+
+def _header_findings(email: ParsedEmail, provider: str | None = None) -> list[Finding]:
     sender = email.sender
     if sender is None or not sender.domain:
         return [Finding("header.no_sender", "medium", "The From address is missing or malformed")]
@@ -100,12 +118,30 @@ def _header_findings(email: ParsedEmail) -> list[Finding]:
                                     str(sender)))
             break
 
-    for reply in email.reply_to:
-        if reply.domain and not same_site(reply.domain, sender.domain):
-            findings.append(Finding("header.reply_to_mismatch", "medium",
-                                    "Replies go to a different domain from the sender",
-                                    f"From {sender.domain}, Reply-To {reply.address}"))
-            break
+    replies = [reply for reply in email.reply_to
+               if reply.domain and not same_site(reply.domain, sender.domain)]
+    malformed = [reply for reply in email.reply_to if not reply.domain]
+    if malformed:
+        findings.append(Finding("header.reply_to_malformed", "medium",
+                                "A Reply-To address is missing a usable domain",
+                                ", ".join(reply.address or "(empty address)" for reply in malformed[:3])))
+    if replies:
+        context = provider and not malformed and all(_ordinary_reply_domain(r.domain) for r in replies)
+        title = (f"Replies use a different domain from a {provider} sender address; this can occur with From rewriting"
+                 if context else "Replies go to a different domain from the sender")
+        findings.append(Finding("header.reply_to_mismatch", "low" if context else "medium", title,
+                                f"From {sender.domain}, Reply-To {', '.join(r.address for r in replies[:3])}"))
+        # Inspect all reply targets, so an ordinary first address cannot hide a
+        # later brand lookalike. A routing pattern does not waive these findings.
+        seen_reply_domains: set[str] = set()
+        for reply in replies:
+            lookalike = find_lookalike(reply.domain)
+            if lookalike and reply.domain not in seen_reply_domains:
+                seen_reply_domains.add(reply.domain)
+                findings.append(Finding("header.reply_to_lookalike",
+                                        "medium" if lookalike.technique == "brand-keyword" else "high",
+                                        f"The Reply-To domain {_LOOKALIKE_TITLES[lookalike.technique]} {lookalike.imitates}",
+                                        to_unicode(reply.domain)))
     if email.return_path and "@" in email.return_path:
         bounce_domain = email.return_path.rpartition("@")[2]
         if not same_site(bounce_domain, sender.domain):
@@ -185,7 +221,8 @@ def analyze(email: ParsedEmail, source: str = "", intel: ThreatIntel | None = No
     links = html_links + [l for l in extract_text_links(email.text)
                           if l.url not in {h.url for h in html_links}]
     auth = parse_authentication_results(email.authentication_results)
-    findings = (_auth_findings(auth) + _header_findings(email) + _link_findings(links)
+    provider = _mailing_context(email, auth)
+    findings = (_auth_findings(auth) + _header_findings(email, provider) + _link_findings(links)
                 + _content_findings(email, visible_html_text) + _attachment_findings(email))
     return Report(source=source, email=email, auth=auth, findings=sort_findings(findings), links=links)
 
