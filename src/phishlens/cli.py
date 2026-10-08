@@ -7,6 +7,7 @@ import sys
 
 from . import __version__
 from .analyzer import analyze_file
+from .display import terminal_text
 from .message import DEFAULT_MAX_BYTES, EmailInputError
 from .report import to_json, to_text
 
@@ -42,10 +43,10 @@ def main(argv: list[str] | None = None) -> int:
     try:
         report = analyze_file(args.path, max_bytes=args.max_size_mb * 1024 * 1024)
     except OSError as error:
-        print(f"phishlens: cannot read {args.path}: {error.strerror or error}", file=sys.stderr)
+        print(f"phishlens: cannot read {terminal_text(args.path)}: {terminal_text(str(error.strerror or error))}", file=sys.stderr)
         return 1
     except EmailInputError as error:
-        print(f"phishlens: cannot analyse {args.path}: {error}", file=sys.stderr)
+        print(f"phishlens: cannot analyse {terminal_text(args.path)}: {terminal_text(str(error))}", file=sys.stderr)
         return 1
     print(to_json(report) if args.json else to_text(report))
     if args.fail_on and _LEVEL_RANK[report.level] >= _LEVEL_RANK[args.fail_on]:

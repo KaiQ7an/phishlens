@@ -31,6 +31,13 @@ def test_missing_file(capsys):
     assert "cannot read" in capsys.readouterr().err
 
 
+def test_untrusted_path_controls_are_escaped_in_errors(capsys):
+    assert main(["analyze", "missing\x1b[2J\n.eml"]) == 1
+    output = capsys.readouterr()
+    assert "\x1b" not in output.err
+    assert "missing\\x1b[2J\\x0a.eml" in output.err
+
+
 def test_empty_file_returns_error_without_report(tmp_path, capsys):
     path = tmp_path / "empty.eml"
     path.write_bytes(b"")

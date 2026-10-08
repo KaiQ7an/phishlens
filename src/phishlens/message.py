@@ -1,7 +1,8 @@
 """Load an .eml file into a structured view of the parts PhishLens inspects.
 
-Attachments are decoded only so their size and SHA-256 can be recorded; their
-contents are never written to disk, opened or executed.
+Leaf attachments are decoded only so their size and SHA-256 can be recorded.
+MIME container attachments use an explicitly labelled serialized representation.
+Attachment contents are never written to disk, opened or executed.
 """
 
 from __future__ import annotations
@@ -68,6 +69,7 @@ class Attachment:
     content_type: str
     size: int
     sha256: str
+    hash_basis: str = "decoded-payload"
 
 
 @dataclass
@@ -109,20 +111,50 @@ def _decode_text(part: Message, warnings: list[str]) -> str:
         return text
 
 
-def _bounded_parts(message: Message) -> list[Message]:
-    """Bound traversal without adding another recursive walk of the MIME tree."""
-    parts: list[Message] = []
-    pending = [(message, 0)]
+def _is_attachment(part: Message) -> bool:
+    return (part.get_content_disposition() == "attachment"
+            or part.get_filename() is not None
+            or part.get_content_type() in {"message/rfc822", "message/global"})
+
+
+def _bounded_parts(message: Message) -> list[tuple[Message, bool]]:
+    """Validate every part and mark descendants of attachments as out of scope.
+
+    Attachment descendants still count toward the limits and defect warnings,
+    but they must not contribute body text or attachments to the outer email.
+    """
+    parts: list[tuple[Message, bool]] = []
+    pending = [(message, 0, False)]
     while pending:
-        part, depth = pending.pop()
+        part, depth, inside_attachment = pending.pop()
         if depth > MAX_MIME_DEPTH:
             raise EmailInputError(f"email exceeds the MIME nesting limit of {MAX_MIME_DEPTH}")
-        parts.append(part)
+        parts.append((part, inside_attachment))
         if len(parts) > MAX_MIME_PARTS:
             raise EmailInputError(f"email exceeds the MIME part limit of {MAX_MIME_PARTS}")
         if part.is_multipart():
-            pending.extend((child, depth + 1) for child in reversed(part.get_payload()))
+            child_is_attached = inside_attachment or _is_attachment(part)
+            pending.extend((child, depth + 1, child_is_attached)
+                           for child in reversed(part.get_payload()))
     return parts
+
+
+def _attachment_bytes(part: Message, warnings: list[str]) -> bytes:
+    if part.is_multipart():
+        # The parser represents these payloads as Message objects, so decoded
+        # original bytes are unavailable. Serialize in memory, without reading
+        # or extracting their contents as a separate email.
+        warnings.append("MIME container attachment size and SHA-256 use a serialized "
+                        "representation and may differ from the original attachment bytes.")
+        try:
+            return part.as_bytes(policy=policy.default)
+        except UnicodeEncodeError:
+            # Malformed multipart bodies may have become replacement text in
+            # the stdlib parser; its byte generator cannot encode that text.
+            warnings.append("Malformed MIME container attachment required text serialization; "
+                            "replacement characters may be present.")
+            return part.as_string(policy=policy.default).encode("utf-8", errors="surrogateescape")
+    return part.get_payload(decode=True) or b""
 
 
 _DEFECT_WARNINGS = {
@@ -161,28 +193,30 @@ def parse_bytes(raw: bytes, *, max_bytes: int = DEFAULT_MAX_BYTES) -> ParsedEmai
 
     text_parts: list[str] = []
     html_parts: list[str] = []
-    for part in parts:
-        if part.is_multipart():
+    for part, inside_attachment in parts:
+        if inside_attachment:
             continue
-        disposition = part.get_content_disposition()
         filename = part.get_filename()
-        if disposition == "attachment" or (filename and disposition != "inline"):
-            payload = part.get_payload(decode=True) or b""
+        if _is_attachment(part):
+            payload = _attachment_bytes(part, parsed.parsing_warnings)
             parsed.attachments.append(
                 Attachment(
                     filename=filename or "(unnamed)",
                     content_type=part.get_content_type(),
                     size=len(payload),
                     sha256=hashlib.sha256(payload).hexdigest(),
+                    hash_basis="serialized-mime" if part.is_multipart() else "decoded-payload",
                 )
             )
+        elif part.is_multipart():
+            continue
         elif part.get_content_type() == "text/plain":
             text_parts.append(_decode_text(part, parsed.parsing_warnings))
         elif part.get_content_type() == "text/html":
             html_parts.append(_decode_text(part, parsed.parsing_warnings))
 
     # Decoding can add defects (notably invalid base64), so inspect them last.
-    for part in parts:
+    for part, _ in parts:
         for defect in part.defects:
             parsed.parsing_warnings.append(_DEFECT_WARNINGS.get(
                 type(defect).__name__, "Malformed email content was detected; analysis may be incomplete."))

@@ -33,6 +33,127 @@ def test_attachments_are_hashed_not_opened(fixture_path):
     expected = b"PhishLens test fixture. This is plain text, not a program.\n"
     assert exe.size == len(expected)
     assert exe.sha256 == hashlib.sha256(expected).hexdigest()
+    assert exe.hash_basis == "decoded-payload"
+
+
+def test_inline_executable_is_an_attachment():
+    message = EmailMessage()
+    message.set_content("Outer message body")
+    payload = b"Synthetic attachment; not an executable."
+    message.add_attachment(payload, maintype="application", subtype="octet-stream",
+                           filename="invoice.pdf.exe", disposition="inline")
+
+    email = parse_bytes(message.as_bytes())
+
+    assert email.text.strip() == "Outer message body"
+    assert len(email.attachments) == 1
+    attachment = email.attachments[0]
+    assert attachment.filename == "invoice.pdf.exe"
+    assert attachment.size == len(payload)
+    assert attachment.sha256 == hashlib.sha256(payload).hexdigest()
+    assert attachment.hash_basis == "decoded-payload"
+
+
+def test_benign_inline_image_keeps_normal_text_and_html_bodies():
+    message = EmailMessage()
+    message.set_content("Plain body")
+    message["Content-Disposition"] = "inline"
+    message.add_alternative("<p>HTML body</p>", subtype="html", disposition="inline")
+    payload = b"Synthetic image bytes"
+    message.add_attachment(payload, maintype="image", subtype="png",
+                           filename="logo.png", disposition="inline")
+
+    email = parse_bytes(message.as_bytes())
+
+    assert email.text.strip() == "Plain body"
+    assert email.html.strip() == "<p>HTML body</p>"
+    assert [attachment.filename for attachment in email.attachments] == ["logo.png"]
+    assert email.attachments[0].sha256 == hashlib.sha256(payload).hexdigest()
+
+
+@pytest.mark.parametrize("subtype", ["plain", "html"])
+def test_named_inline_text_is_excluded_from_outer_body(subtype):
+    message = EmailMessage()
+    message.set_content("Outer message body")
+    message.add_attachment("Attached text contains urgent demands", subtype=subtype,
+                           filename="note.txt", disposition="inline")
+
+    email = parse_bytes(message.as_bytes())
+
+    assert email.text.strip() == "Outer message body"
+    assert email.html == ""
+    assert [attachment.filename for attachment in email.attachments] == ["note.txt"]
+
+
+@pytest.mark.parametrize("filename,disposition", [("forwarded.eml", "attachment"),
+                                                  (None, "inline")])
+def test_encapsulated_message_is_opaque_to_outer_analysis(filename, disposition):
+    forwarded = EmailMessage()
+    forwarded["Subject"] = "Attached message"
+    forwarded.set_content("Inner body: urgently wire funds")
+    forwarded.add_alternative("<p>Inner HTML body</p>", subtype="html")
+    forwarded.add_attachment(b"Synthetic attachment", maintype="application",
+                             subtype="octet-stream", filename="inner.exe")
+    message = EmailMessage()
+    message.set_content("Outer message body")
+    message.add_attachment(forwarded, filename=filename, disposition=disposition)
+
+    email = parse_bytes(message.as_bytes())
+
+    assert email.text.strip() == "Outer message body"
+    assert email.html == ""
+    assert len(email.attachments) == 1
+    attachment = email.attachments[0]
+    assert attachment.filename == (filename or "(unnamed)")
+    assert attachment.content_type == "message/rfc822"
+    assert attachment.size > 0
+    assert len(attachment.sha256) == 64
+    assert attachment.hash_basis == "serialized-mime"
+    assert any("original attachment bytes" in warning for warning in email.parsing_warnings)
+
+
+def test_attached_multipart_container_is_hashed_once_and_excludes_its_children():
+    container = EmailMessage()
+    container.set_content("Attached plain body")
+    container.add_alternative("<p>Attached HTML body</p>", subtype="html")
+    container["Content-Disposition"] = 'inline; filename="bundle.mime"'
+    message = EmailMessage()
+    message.set_content("Outer message body")
+    message.make_mixed()
+    message.attach(container)
+    raw = message.as_bytes()
+    serialized = container.as_bytes()
+
+    email = parse_bytes(raw)
+
+    assert email.text.strip() == "Outer message body"
+    assert email.html == ""
+    assert len(email.attachments) == 1
+    attachment = email.attachments[0]
+    assert attachment.filename == "bundle.mime"
+    assert attachment.content_type == "multipart/alternative"
+    assert attachment.size == len(serialized)
+    assert attachment.sha256 == hashlib.sha256(serialized).hexdigest()
+    assert attachment.hash_basis == "serialized-mime"
+
+
+def test_malformed_encapsulated_multipart_retains_warnings_without_crashing():
+    raw = (b"Content-Type: multipart/mixed; boundary=outer\n\n"
+           b"--outer\nContent-Type: text/plain\n\nOuter body\n"
+           b"--outer\nContent-Type: message/rfc822\n"
+           b"Content-Disposition: attachment; filename=forwarded.eml\n\n"
+           b"Content-Type: multipart/mixed; boundary=missing\n\n"
+           b"No nested boundary here \xff\n"
+           b"--outer--\n")
+
+    email = parse_bytes(raw)
+
+    assert email.text.strip() == "Outer body"
+    assert len(email.attachments) == 1
+    assert email.attachments[0].size > 0
+    assert email.attachments[0].hash_basis == "serialized-mime"
+    assert any("replacement characters" in warning for warning in email.parsing_warnings)
+    assert any("start boundary" in warning for warning in email.parsing_warnings)
 
 
 def test_reply_to_and_return_path(fixture_path):
@@ -130,7 +251,8 @@ def test_truncated_multipart_retains_available_text_and_reports_warning():
 
 
 @pytest.mark.parametrize("depth", [MAX_MIME_DEPTH, MAX_MIME_DEPTH + 1])
-def test_mime_nesting_limit(depth):
+@pytest.mark.parametrize("attached", [False, True])
+def test_mime_nesting_limit(depth, attached):
     leaf = EmailMessage()
     leaf.set_content("hello")
     for _ in range(depth):
@@ -138,18 +260,25 @@ def test_mime_nesting_limit(depth):
         parent.make_mixed()
         parent.attach(leaf)
         leaf = parent
+    if attached:
+        leaf["Content-Disposition"] = 'attachment; filename="nested.mime"'
     raw = leaf.as_bytes()
     if depth == MAX_MIME_DEPTH:
-        assert parse_bytes(raw).text.strip() == "hello"
+        email = parse_bytes(raw)
+        assert email.text.strip() == ("" if attached else "hello")
+        assert len(email.attachments) == (1 if attached else 0)
     else:
         with pytest.raises(EmailInputError, match="nesting limit"):
             parse_bytes(raw)
 
 
-def test_excessive_mime_parts_are_rejected():
+@pytest.mark.parametrize("attached", [False, True])
+def test_excessive_mime_parts_are_rejected(attached):
     raw = (b"Content-Type: multipart/mixed; boundary=test\n\n"
            + b"--test\nContent-Type: text/plain\n\nhello\n" * MAX_MIME_PARTS
            + b"--test--\n")
+    if attached:
+        raw = b'Content-Disposition: attachment; filename="many.mime"\n' + raw
     with pytest.raises(EmailInputError, match="part limit"):
         parse_bytes(raw)
 

@@ -55,11 +55,11 @@ def _auth_findings(auth: AuthVerdicts | None) -> list[Finding]:
     findings = []
     if auth.dmarc in ("fail", "reject", "quarantine"):
         findings.append(Finding("auth.dmarc_fail", "high",
-                                "DMARC failed: the domain in From did not authorise this message",
+                                "DMARC failed in the recorded results: sender-domain alignment was not accepted",
                                 f"dmarc={auth.dmarc}"))
     if auth.spf == "fail":
         findings.append(Finding("auth.spf_fail", "medium",
-                                "SPF failed: the sending server is not allowed to send for this domain",
+                                "SPF failed in the recorded results: the sending server was not authorised",
                                 f"spf={auth.spf}"))
     elif auth.spf == "softfail":
         findings.append(Finding("auth.spf_softfail", "low",
@@ -67,10 +67,10 @@ def _auth_findings(auth: AuthVerdicts | None) -> list[Finding]:
                                 f"spf={auth.spf}"))
     if auth.dkim == "fail":
         findings.append(Finding("auth.dkim_fail", "medium",
-                                "DKIM failed: the message was altered or the signature is forged",
+                                "DKIM failed in the recorded results: the reporting server could not validate the signature",
                                 f"dkim={auth.dkim}"))
     elif auth.dkim in (None, "none"):
-        findings.append(Finding("auth.dkim_missing", "low", "The message is not DKIM-signed",
+        findings.append(Finding("auth.dkim_missing", "low", "No usable DKIM pass/fail result was recorded",
                                 f"dkim={auth.dkim or 'missing'}"))
     return findings
 
