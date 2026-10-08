@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Explainable phishing email analysis: every point in the risk score comes with a reason."
 readme = "README.md"
 requires-python = ">=3.11"
-authors = [{ name = "Kaiqian Xue" }]
+authors = [{ name = "KaiQian Xue" }]
 dependencies = []
 
 [project.optional-dependencies]

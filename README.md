@@ -8,6 +8,9 @@ includes a reason, evidence when available, and its contribution to the score.
 The current MVP uses Python's standard library, with no runtime dependencies or
 API keys. It includes English and Chinese rules and six synthetic sample emails.
 
+**Status:** active development. The code is public; a tagged Release or PyPI
+package has not been published. Formal release is deferred until final review.
+
 ## Quick start
 
 Requires Python 3.11 or newer. Development has been checked on Python 3.14.8.
@@ -64,6 +67,17 @@ results, score, risk level, findings, extracted links, and attachment metadata
 including full SHA-256 hashes. The `parsing_warnings` array is empty for messages
 with no detected parsing issues.
 
+Authentication objects include `verified: false` and a `warnings` array. The
+verdicts are claims recorded in the email, not independently validated results.
+Conflicting duplicate results or malformed clauses can make a method's result
+`null` (shown as unknown in text reports). Lower authentication headers are not
+merged with the selected header.
+
+Attachment objects include `hash_basis`: `decoded-payload` for ordinary files,
+or `serialized-mime` for multipart containers and forwarded emails. The latter
+hash describes the parser's in-memory MIME representation, not the original
+attachment bytes, and comes with an explicit warning.
+
 If a charset is unknown or text bytes are damaged, PhishLens preserves as much
 text as it can and includes a warning in both text and JSON reports. Invalid
 base64 and malformed or truncated multipart content also produce warnings.
@@ -79,7 +93,7 @@ checks, yet its language produces a high-risk verdict. Output excerpt:
 PhishLens report: tests/fixtures/zh_fake_police.eml
   Subject : 【紧急通知】您的护照涉嫌一宗洗钱案件
   From    : 中国驻墨尔本总领事馆 <notice@cn-consulate-service.example>
-  Auth    : SPF pass · DKIM pass · DMARC pass  (by mx.receiver.example)
+  Auth    : SPF pass · DKIM pass · DMARC pass  (by mx.receiver.example)  (recorded, unverified)
 
   Verdict : HIGH RISK  (score 80/100)
 
@@ -101,14 +115,16 @@ accuracy on real email.
 ## What it checks
 
 - The topmost `Authentication-Results` header for recorded SPF, DKIM and DMARC
-  verdicts; missing authentication information is also reported.
+  verdicts; comments and quoted supporting values are not treated as results.
+  Missing, malformed, or conflicting authentication information is reported.
 - Sender display names, lookalike sender domains, differing Reply-To domains,
   and Return-Path differences.
 - HTML and plain-text links: misleading anchor text, lookalike domains,
   punycode, mixed scripts, bare IP addresses, URL shorteners, user-info tricks,
   insecure login-style URLs, and form destinations.
 - Attachment filenames and extensions: executables, double extensions, macro
-  documents, HTML/SVG files, disk images, and archives.
+  documents, HTML/SVG files, disk images, and archives, including named inline
+  MIME parts.
 - English and Chinese language suggesting urgency, authority, secrecy, or
   unusual payments. Keywords inside URLs are excluded from this check.
 
@@ -134,9 +150,16 @@ not a probability. Passing authentication does not subtract risk points.
 - Attachment payloads are MIME-decoded in memory to calculate their size and
   SHA-256 hash. They are not saved, launched, unpacked, or scanned for malware.
   Attachment warnings are based on filenames, not verified file contents.
+  Forwarded emails and attached multipart containers are treated as opaque
+  attachments: their inner text, links, and files are not scored as part of the
+  outer email. Container size/hash uses a serialized representation with
+  explicit provenance rather than claiming the original bytes are available.
 - Authentication results are read from the first header, not independently
   verified. The tool cannot prove that this header came from a trusted receiving
   server. Arbitrary or edited `.eml` files can contain forged results.
+- Text reports escape control and invisible formatting characters in email
+  fields, so they cannot clear the terminal or insert fake report lines. JSON
+  reports escape these characters while retaining the original parsed values.
 - Domain and language rules are intentionally small. The built-in suffix list
   is not the complete Public Suffix List, and brand/confusable lists are not
   exhaustive. Legitimate messages can trigger warnings; phishing can be missed.
@@ -159,9 +182,9 @@ python -m pip install '.[dev]'
 python -m pytest -q
 ```
 
-The current suite has 91 tests for message parsing, input limits, malformed MIME,
-text decoding, authentication headers, domains, links, attachment rules, language
-signals, scoring, and CLI output.
+The current suite has 150 tests for message parsing, input limits, malformed MIME,
+text decoding, authentication-header ambiguity, domains, links, inline/container
+attachments, language signals, scoring, safe report rendering, and CLI output.
 Fixtures use synthetic messages and reserved example domains, with no real inbox
 data. The fixture generator is `tests/fixtures/build_fixtures.py`.
 
@@ -175,6 +198,29 @@ The code follows this flow:
 For a contribution, add a synthetic regression case for a meaningful behavior
 change, reinstall the package, and run the suite. Keep analysis offline and
 avoid adding real messages, credentials, or generated reports.
+
+### CI and package validation
+
+GitHub Actions runs the suite on Linux with Python 3.11–3.14 and on macOS/Windows
+with Python 3.14. It builds a wheel and source distribution, then installs each
+into a fresh virtual environment outside the checkout. All six sample emails
+are read from the source archive for CLI smoke checks, so missing package files
+or fixtures cannot be masked by the source directory.
+
+To run the package check locally:
+
+```bash
+python -m pip install build twine
+python -m build
+python -m twine check dist/*
+python -m pip download --only-binary=:all: --dest /tmp/phishlens-build-deps 'setuptools>=68' wheel
+python scripts/verify_distribution.py --build-deps /tmp/phishlens-build-deps
+```
+
+The verification installs use predownloaded build wheels and `--no-index`.
+CI retains ordinary build artifacts for inspection and does not publish a
+GitHub Release or upload to PyPI. See [CHANGELOG.md](CHANGELOG.md) for unreleased
+changes.
 
 ### macOS editable-install troubleshooting
 
@@ -194,8 +240,12 @@ phishlens --version
 - **Current MVP:** offline `.eml` analysis, explained text/JSON reports, English
   and Chinese rules, synthetic regression fixtures, bounded file input, MIME
   structure limits, and visible parsing warnings.
-- **Next:** a stronger policy for identifying trusted authentication headers
-  and further malformed-message coverage.
+- **Current hardening:** conservative authentication parsing with explicit
+  unverified provenance, inline/container attachment handling, escaped report
+  controls, and cross-platform CI/package verification.
+- **Before formal release:** review CI results, expand independent synthetic
+  scenarios and compatibility checks, decide licensing, and complete final
+  usability review. Tagged releases and PyPI publication remain deferred.
 - **Later:** broader domain data and configurable brand/language rules, plus
   batch analysis and report comparison.
 - **Optional future work:** explicit opt-in reputation lookups with caching and

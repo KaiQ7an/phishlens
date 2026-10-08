@@ -1,0 +1,3 @@
+recursive-include tests *.py *.eml
+include scripts/verify_distribution.py
+include CHANGELOG.md

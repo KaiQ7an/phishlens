@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ['3.11', '3.12', '3.13', '3.14']
+        include:
+          - os: macos-latest
+            python: '3.14'
+          - os: windows-latest
+            python: '3.14'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install package and validation tools
+        run: python -m pip install ".[dev]" build
+      - name: Run tests
+        run: python -m pytest -q
+      - name: Build source and wheel distributions
+        run: python -m build
+      - name: Prepare offline source build dependencies
+        run: python -m pip download --only-binary=:all: --dest "${{ runner.temp }}/phishlens-build-deps" "setuptools>=68" wheel
+      - name: Verify distributions in fresh environments outside checkout
+        run: python scripts/verify_distribution.py --build-deps "${{ runner.temp }}/phishlens-build-deps"
+      - name: Keep validated packages as CI artifacts
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.14'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: validated-distributions
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
