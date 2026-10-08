@@ -280,16 +280,13 @@ KNOWN_GAPS: dict[str, str] = {
     "dev/legit/newsletter-tracked-url-text":
         "Click tracking whose visible text is the final URL reads as an anchor mismatch; only Constant "
         "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
-    "dev/phish/zh-customs-fee": "Authority claimed in the display name and customs/delivery fees are not recognised.",
     "dev/phish/zh-rental-deposit": "No signal for an unseen party who wants money before any meeting.",
     "dev/phish/qr-mfa-reenrol": "No signal for QR codes, which move the link out of reach of link checks.",
     "dev/phish/encrypted-zip-invoice": "An archive whose password is in the same email is only scored as an archive.",
-    "dev/phish/zh-kidnapping-variant": "Authority in the display name and 'do not call the police' are not recognised.",
     "dev/phish/sharepoint-lookalike": "Microsoft product names such as SharePoint are not tied to the Microsoft brand.",
     "dev/phish/voicemail-html": "A lone HTML attachment scores just below the suspicious threshold.",
     "dev/phish/bank-details-change": "Requests to change bank details are not treated as payment requests.",
     "holdout/phish/tax-refund": "Missed by the baseline rules (holdout: not used for tuning).",
-    "holdout/phish/zh-embassy-document": "Missed by the baseline rules (holdout: not used for tuning).",
     "holdout/phish/crypto-investment": "Missed by the baseline rules (holdout: not used for tuning).",
     "holdout/phish/macro-invoice": "Missed by the baseline rules (holdout: not used for tuning).",
     "holdout/phish/social-copyright-appeal": "Missed by the baseline rules (holdout: not used for tuning).",

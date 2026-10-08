@@ -34,11 +34,12 @@ SIGNALS: tuple[Signal, ...] = (
     )),
     Signal("content.authority", "medium", "Claims to be police, a court or a government office", (
         "police", "embassy", "consulate", "arrest warrant", "money laundering", "under investigation", "interpol",
-        "公安", "警察", "警官", "大使馆", "领事馆", "涉嫌", "洗钱", "通缉", "立案", "办案",
+        "公安", "警察", "警官", "大使馆", "领事馆", "海关", "涉嫌", "洗钱", "通缉", "立案", "办案",
     )),
     Signal("content.secrecy", "high", "Tells you to keep it secret or cut off contact", (
         "do not tell", "don't tell", "keep this confidential", "do not contact your family",
-        "保密", "不要告诉", "切勿告知", "不得透露", "断联", "不要联系家人",
+        "do not call the police", "don't call the police",
+        "保密", "不要告诉", "切勿告知", "不得透露", "断联", "不要联系家人", "不要报警", "别报警",
     )),
 )
 

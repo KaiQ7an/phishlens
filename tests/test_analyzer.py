@@ -68,3 +68,26 @@ def test_unknown_charset_does_not_hide_social_engineering():
     assert report.email.parsing_warnings
     assert {f.code for f in report.findings} == {"content.urgency", "content.payment"}
     assert report.score == 20
+
+
+def _email(display_name, domain, body):
+    raw = (f"Authentication-Results: mx.receiver.example; spf=pass; dkim=pass; dmarc=pass\n"
+           f"From: {display_name} <notice@{domain}>\nSubject: Notice\n\n{body}\n").encode()
+    return parse_bytes(raw)
+
+
+def test_authority_claimed_only_in_display_name_is_flagged():
+    codes = {f.code for f in analyze(_email("=?utf-8?b?5YWs5a6J5bGA?=", "cn-police-notice.example",
+                                            "Please read this notice.")).findings}
+    assert "content.authority_non_gov" in codes  # display name decodes to 公安局
+
+
+def test_display_name_authority_from_government_domain_is_not_escalated():
+    codes = {f.code for f in analyze(_email("Victoria Police", "police.vic.gov.au", "Community forum on Thursday.")).findings}
+    assert "content.authority_non_gov" not in codes
+
+
+def test_telling_the_reader_not_to_call_the_police_is_secrecy():
+    for body in ("不要报警，按我们说的做。", "Don't call the police or anyone else."):
+        codes = {f.code for f in analyze(_email("Helper", "mail-host.example", body)).findings}
+        assert "content.secrecy" in codes

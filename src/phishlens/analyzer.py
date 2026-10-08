@@ -234,7 +234,10 @@ def _link_findings(links: list[Link], provider: str | None = None,
 
 
 def _content_findings(email: ParsedEmail, visible_html_text: str) -> list[Finding]:
-    text = strip_urls("\n".join((email.subject, email.text, visible_html_text)))
+    # The sender's display name is read as part of the message: impersonation
+    # often lives there ("公安局", "Embassy") rather than in the body.
+    display_name = email.sender.display_name if email.sender else ""
+    text = strip_urls("\n".join((display_name, email.subject, email.text, visible_html_text)))
     findings = []
     for signal, matched in find_signals(text):
         evidence = ", ".join(f"'{m}'" for m in matched[:5])
