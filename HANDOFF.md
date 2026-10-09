@@ -108,7 +108,7 @@ python scripts/verify_distribution.py --dist-dir "$phishlens_dist_dir" --build-d
 - Python 3.14.8 重装 wheel 后：**728 passed, 26 xfailed**（xfail 为已记录的已知缺口）。
 - wheel/sdist 构建、`twine check` 及仓库外两个新环境中的离线包检查（含目录批量分析）全部通过。
 - 六封公开 fixture：正常邮件 0；五封钓鱼均为 high；README 示例输出已与实际输出核对。
-- GitHub Actions：CI #6–#15 全部通过（已在网页核对）；之后推送的运行结果需再次核对。
+- GitHub Actions：截至提交 `2ca3f87` 的 CI #26 及之前各次运行通过（已通过公开 API 核对）；#16 曾因 Windows 不允许文件名含控制字符而失败，#17 已跳过该用例并通过。之后的推送需再次核对。
 
 ## 下一步优先级
 
