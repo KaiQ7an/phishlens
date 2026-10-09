@@ -4,10 +4,10 @@ Every message here is invented for evaluation. Labels and splits were written
 before the analyzer was run on them:
 
 * ``dev`` scenarios may guide rule changes.
-* ``holdout`` to ``holdout5`` scenarios must never be used to tune rules;
+* ``holdout`` to ``holdout6`` scenarios must never be used to tune rules;
   they only measure whether a change generalises. Do not edit a holdout
   scenario to make it pass. Each holdout's missed categories shaped the
-  next round of dev scenarios, so the newest set, ``holdout5``, is the
+  next round of dev scenarios, so the newest set, ``holdout6``, is the
   current unseen measure.
 
 A phishing scenario counts as detected when the verdict is suspicious or high.
@@ -65,7 +65,7 @@ def build(sender: str, subject: str, text: str, *, html: str | None = None, auth
     return msg.as_bytes()
 
 
-SPLITS = ("dev", "holdout", "holdout2", "holdout3", "holdout4", "holdout5")
+SPLITS = ("dev", "holdout", "holdout2", "holdout3", "holdout4", "holdout5", "holdout6")
 
 FAKE = b"PhishLens evaluation placeholder; not a real document or program.\n"
 
@@ -1174,7 +1174,147 @@ def _holdout_round_five() -> list[Scenario]:
     ]
 
 
-SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _dev_round_five() + _dev_round_six() + _holdout() + _holdout_round_two() + _holdout_round_three() + _holdout_round_four() + _holdout_round_five())
+def _holdout_round_six() -> list[Scenario]:
+    """Added 2026-10-09 after the round-six rules, before running them. More
+    legitimate messages than earlier holdouts, because the larger rule set
+    raises the risk of false alarms. Run once; never used for tuning."""
+    s, p = "legitimate", "phishing"
+    return [
+        Scenario("holdout6/phish/variant-parcel-storage-fee", "holdout6", p, "delivery scam",
+                 "Postal brand on an unrelated domain asking for a storage fee.",
+                 build("AusPost <noreply@auspost-delivery-hub.example>", "Your item is waiting",
+                       "Your item is waiting at our facility. Confirm your delivery preferences and settle "
+                       "the $0.80 storage fee to avoid return to sender.\n",
+                       html='<p><a href="https://auspost-delivery-hub.example/prefs">Confirm preferences</a></p>')),
+        Scenario("holdout6/phish/variant-zh-romance-platform", "holdout6", p, "Chinese investment scam",
+                 "Friendly stranger steers toward an 'insider' trading platform.",
+                 build("Sophie <sophie.chen.life@mail-host.example>", "认识你很开心",
+                       "最近聊得很开心～我舅舅是做数字资产分析的，有内部消息，我跟着在一个平台做了三个月，"
+                       "每次都稳定盈利。你想试试的话我教你注册。\n")),
+        Scenario("holdout6/phish/variant-dad-vet-bill", "holdout6", p, "family impersonation",
+                 "'Child' on a borrowed account needs money for a vet bill.",
+                 build("Mia <mia.borrowed.acc@mail-host.example>", "Dad it's Mia",
+                       "Dad, my phone died and I'm on a friend's email. Biscuit is at the emergency vet and "
+                       "they need $700 before they'll treat him. Can you send it to the account below?\n")),
+        Scenario("holdout6/phish/variant-tiktok-ban", "holdout6", p, "account threat",
+                 "Unprotected platform brand threatening a ban unless ownership is verified.",
+                 build("TikTok Safety <review@tiktok-safety-review.example>", "Final warning: account ban",
+                       "Your account violates our community guidelines and will be permanently banned in "
+                       "24 hours. Verify your ownership to file an objection.\n",
+                       html='<p><a href="https://tiktok-safety-review.example/verify">Verify ownership</a></p>')),
+        Scenario("holdout6/phish/variant-zh-subsidy", "holdout6", p, "Chinese government impersonation",
+                 "Fake labour bureau subsidy asking for bank card details.",
+                 build("人社局补贴办 <butie@rsj-subsidy.example>", "失业补贴领取通知",
+                       "您符合本年度失业补贴发放条件，补贴金额3,600元。请登录下方网页填写姓名、身份证号"
+                       "和银行卡号完成领取。\nhttps://rsj-subsidy.example/apply\n")),
+        Scenario("holdout6/phish/variant-supplier-new-banking", "holdout6", p, "business email compromise",
+                 "Supplier says its banking has changed, from a lookalike domain.",
+                 build("Accounts <accounts@officeworks-billing.example>", "Change to our banking",
+                       "Please note our banking has changed effective immediately. Use the account in the "
+                       "attached letter for this and all future invoices.\n",
+                       attachments=(("new-banking-letter.pdf", "application", "pdf", FAKE),))),
+        Scenario("holdout6/phish/new-payid-upgrade", "holdout6", p, "marketplace scam",
+                 "Buyer claims a payment is held until the seller pays to 'upgrade' to a business account.",
+                 build("PayID Support <support@payid-business-verify.example>", "Payment pending: action required",
+                       "A buyer has sent you $350 via PayID. The funds are pending because your account is "
+                       "not a business account. Ask the buyer to cover the upgrade or pay $100 yourself; "
+                       "it will be returned with the payment.\n")),
+        Scenario("holdout6/phish/new-airbnb-off-platform", "holdout6", p, "rental scam",
+                 "Host asks to book directly outside the platform by bank transfer.",
+                 build("Host Daniel <daniel.stays@mail-host.example>", "Book direct and save",
+                       "Thanks for your interest in the apartment. If we book directly instead of through "
+                       "the app, I can take 15% off. Just pay the full amount by bank transfer.\n")),
+        Scenario("holdout6/phish/new-code-forwarding", "holdout6", p, "account takeover",
+                 "Asks the reader to pass on a login code 'sent by mistake'.",
+                 build("Chris <chris.k.temp@mail-host.example>", "Sent my code to you by mistake",
+                       "Hey, I accidentally put your number when logging in and the 6-digit code went to "
+                       "your phone. Could you forward it to me? Thanks heaps.\n")),
+        Scenario("holdout6/phish/new-enrolment-fee", "holdout6", p, "university impersonation",
+                 "Enrolment cancellation threat over an unpaid fee, linking to a payment host.",
+                 build("Student Finance <finance@student-fee-portal.example>", "Enrolment cancellation notice",
+                       "Your enrolment will be cancelled on Friday because your student services fee is "
+                       "outstanding. Pay online now to keep your place.\n",
+                       html='<p><a href="https://student-fee-portal.example/pay">Pay fee</a></p>')),
+        Scenario("holdout6/phish/new-zh-service-close", "holdout6", p, "Chinese customer-service scam",
+                 "Fake payment app support says a paid insurance feature must be closed via a link.",
+                 build("支付平台客服 <kefu@pay-guarantee-cn.example>", "百万保障即将扣费",
+                       "您开通的百万保障服务试用期已满，将于明日起每月自动扣费688元。如非本人开通，"
+                       "请点击链接关闭服务。\nhttps://pay-guarantee-cn.example/close\n")),
+        Scenario("holdout6/phish/new-crypto-recovery", "holdout6", p, "recovery scam",
+                 "Promises to recover lost crypto for an upfront fee.",
+                 build("Asset Recovery <cases@crypto-recovery-experts.example>", "We can recover your funds",
+                       "Lost money to an online trading scam? Our certified team recovers stolen crypto. "
+                       "An upfront retainer of $1,200 is required to open your case.\n")),
+        Scenario("holdout6/legit/auspost-collect", "holdout6", s, "delivery notice",
+                 "Real postal collection notice.",
+                 build("Australia Post <noreply@notifications.auspost.com.au>", "Your parcel is ready to collect",
+                       "Your parcel is ready to collect from Clayton Post Office. Bring your ID. It will be "
+                       "held for 10 business days.\n")),
+        Scenario("holdout6/legit/student-asks-parent", "holdout6", s, "personal",
+                 "Student asking a parent for textbook money from their usual address.",
+                 build("Mia Brown <mia.brown@student.monash.edu>", "textbook",
+                       "Hi Dad, could you send me $50 for the stats textbook? I'll pay you back when I get "
+                       "paid on Friday. Love, Mia\n")),
+        Scenario("holdout6/legit/tiktok-removal", "holdout6", s, "platform notice",
+                 "Real platform content removal notice.",
+                 build("TikTok <noreply@account.tiktok.com>", "Your video was removed",
+                       "Your video was removed for violating community guidelines. You can appeal this "
+                       "decision in the app.\n")),
+        Scenario("holdout6/legit/zh-gov-subsidy", "holdout6", s, "Chinese government notice",
+                 "Real government subsidy notice from a government domain.",
+                 build("人力资源和社会保障局 <service@rsj.sh.gov.cn>", "补贴发放通知",
+                       "您申请的职业技能补贴已审核通过，将发放至您登记的社保卡账户，无需其他操作。\n")),
+        Scenario("holdout6/legit/supplier-banking-unchanged", "holdout6", s, "workplace notice",
+                 "Real supplier warning that its banking has not changed.",
+                 build("Officeworks Accounts <accounts@officeworks.com.au>", "Our bank details have not changed",
+                       "We are aware of scam emails claiming our bank details have changed. Our bank details "
+                       "have not changed; please call your account manager if in doubt.\n")),
+        Scenario("holdout6/legit/ticket-receipt", "holdout6", s, "receipt",
+                 "Real ticketing receipt.",
+                 build("Ticketek <noreply@ticketek.com.au>", "Your tickets",
+                       "Thanks for your order. Your two tickets for 14 March are attached as mobile tickets.\n")),
+        Scenario("holdout6/legit/airbnb-confirmed", "holdout6", s, "booking",
+                 "Real rental platform confirmation reminding guests to pay on-platform.",
+                 build("Airbnb <automated@airbnb.com>", "Reservation confirmed",
+                       "Your reservation is confirmed. Always communicate and pay through Airbnb to stay "
+                       "protected.\n")),
+        Scenario("holdout6/legit/login-code", "holdout6", s, "security notice",
+                 "Real login code email.",
+                 build("GitHub <noreply@github.com>", "Your GitHub launch code",
+                       "Here is your GitHub launch code: 48213907. If you didn't try to sign in, change your "
+                       "password.\n")),
+        Scenario("holdout6/legit/ssaf-due", "holdout6", s, "university notice",
+                 "Real student services fee reminder.",
+                 build("Monash Student Fees <fees@monash.edu>", "SSAF due 31 October",
+                       "Your Student Services and Amenities Fee is due by 31 October. Pay through WES or "
+                       "defer it to SA-HELP.\n")),
+        Scenario("holdout6/legit/zh-alipay-bill", "holdout6", s, "Chinese bill",
+                 "Real payment app monthly bill.",
+                 build("支付宝 <service@mail.alipay.com>", "您的10月账单已出",
+                       "您10月账单已出，本期应还1,286.40元，还款日为11月9日。\n")),
+        Scenario("holdout6/legit/exchange-security-tip", "holdout6", s, "security notice",
+                 "Real exchange reminding users it never asks for a seed phrase.",
+                 build("CoinSpot <noreply@coinspot.com.au>", "Security reminder",
+                       "Scammers are impersonating exchanges. CoinSpot will never ask for your seed phrase, "
+                       "password or 2FA codes.\n")),
+        Scenario("holdout6/legit/vcat-hearing", "holdout6", s, "government notice",
+                 "Real tribunal hearing notice.",
+                 build("VCAT <noreply@vcat.vic.gov.au>", "Notice of hearing",
+                       "A hearing for your rental bond application is listed for 20 November at 10am. "
+                       "Details are in the attached notice.\n",
+                       attachments=(("notice-of-hearing.pdf", "application", "pdf", FAKE),))),
+        Scenario("holdout6/legit/seek-job-alert", "holdout6", s, "job alert",
+                 "Real job board alert listing remote roles.",
+                 build("SEEK <jobmail@s.seek.com.au>", "12 new jobs for 'data analyst'",
+                       "12 new jobs match your saved search, including work from home roles in Melbourne.\n")),
+        Scenario("holdout6/legit/zh-hotpot-split", "holdout6", s, "personal",
+                 "Friend splitting a dinner bill.",
+                 build("王磊 <wanglei.mel@gmail.com>", "火锅AA",
+                       "今晚火锅一共348，四个人，每人87，微信转我就行。\n")),
+    ]
+
+
+SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _dev_round_five() + _dev_round_six() + _holdout() + _holdout_round_two() + _holdout_round_three() + _holdout_round_four() + _holdout_round_five() + _holdout_round_six())
 
 
 # Scenario id -> why the current rules miss it. Remove an entry when it is fixed.
@@ -1193,4 +1333,17 @@ KNOWN_GAPS: dict[str, str] = {
     "holdout4/phish/variant-ceo-wire": "Missed by the round-four rules (holdout4: not used for tuning).",
     "holdout4/phish/variant-gold-trading": "Missed by the round-four rules (holdout4: not used for tuning).",
     "holdout5/phish/variant-zh-customs-parcel": "Missed by the round-five rules (holdout5: not used for tuning).",
+    "holdout6/phish/variant-zh-romance-platform": "Missed by the round-six rules (holdout6: not used for tuning).",
+    "holdout6/phish/variant-dad-vet-bill": "Missed by the round-six rules (holdout6: not used for tuning).",
+    "holdout6/phish/variant-tiktok-ban": "Missed by the round-six rules (holdout6: not used for tuning).",
+    "holdout6/phish/variant-zh-subsidy": "Missed by the round-six rules (holdout6: not used for tuning).",
+    "holdout6/phish/variant-supplier-new-banking": "Missed by the round-six rules (holdout6: not used for tuning).",
+    "holdout6/phish/new-payid-upgrade": "Missed by the round-six rules (holdout6: not used for tuning).",
+    "holdout6/phish/new-airbnb-off-platform": "Missed by the round-six rules (holdout6: not used for tuning).",
+    "holdout6/phish/new-code-forwarding": "Missed by the round-six rules (holdout6: not used for tuning).",
+    "holdout6/phish/new-enrolment-fee": "Missed by the round-six rules (holdout6: not used for tuning).",
+    "holdout6/phish/new-zh-service-close": "Missed by the round-six rules (holdout6: not used for tuning).",
+    "holdout6/phish/new-crypto-recovery": "Missed by the round-six rules (holdout6: not used for tuning).",
+    "holdout6/legit/exchange-security-tip": "False alarm by the round-six rules: a warning that the exchange never asks "
+                                            "for a seed phrase is read as a request for one.",
 }
