@@ -26,6 +26,10 @@ def test_ordinary_attachments(name):
     assert classify(att(name)) == []
 
 
+def test_macro_documents_are_high_risk():
+    assert ("high", "attachment.macro") in [(sev, c) for sev, c, _ in classify(att("PO-5530.xlsm"))]
+
+
 def test_attached_web_pages_are_high_risk():
     assert ("high", "attachment.html") in [(sev, c) for sev, c, _ in classify(att("voicemail.html"))]
 

@@ -30,7 +30,11 @@ def classify(attachment: Attachment) -> list[tuple[str, str, str]]:
     elif last in EXECUTABLE:
         issues.append(("high", "attachment.executable", f"'{attachment.filename}' is a program or script"))
     if last in MACRO_DOCUMENTS:
-        issues.append(("medium", "attachment.macro", f"'{attachment.filename}' is an Office file that can run macros"))
+        # Office blocks macros in files from the internet by default, so a
+        # macro-enabled file arriving by email is unusual enough to rate high.
+        issues.append(("high", "attachment.macro",
+                       f"'{attachment.filename}' is an Office file that can run macros; "
+                       "do not enable content unless you expected it"))
     if last in HTML:
         issues.append(("high", "attachment.html",
                        f"'{attachment.filename}' is a web page; attached pages are a common way to host fake login forms"))
