@@ -51,15 +51,22 @@
   to Microsoft's sending domains.
 - Flag archives whose password is given in the message text as high risk, and
   raise attached HTML/SVG pages from medium to high.
+- Treat tax offices (taxation office, HMRC, 税务局) as authorities. Add medium
+  signals for guaranteed investment returns and for threats to disable or
+  delete an account or page; count USDT and crypto wallets as payment methods.
+- Rate macro-enabled Office attachments as high, since Office blocks macros in
+  files from the internet by default.
+- Protect Facebook and Instagram, with "Meta" checked in display names only.
 
 ### Validation
 
-- Add 36 labelled synthetic scenarios split into dev and holdout sets, with
-  `scripts/evaluate.py` reporting precision and recall per split. Dev recall
-  rose from 33% to 100% after the fixes above; holdout recall, never used for
-  tuning, rose from 17% to 33%. Remaining misses run as strict expected
-  failures.
-- Expand the regression suite to 436 synthetic tests.
+- Add 66 labelled synthetic scenarios in dev, holdout and holdout2 splits,
+  with `scripts/evaluate.py` reporting precision and recall per split. Dev
+  recall rose from 33% to 100% across two rounds of fixes. Round-one holdout
+  recall rose from 17% to 83%, but its missed categories shaped round-two dev
+  scenarios; the fresh holdout2 set, run once, reports 38% recall with no
+  false alarms. Remaining misses run as strict expected failures.
+- Expand the regression suite to 471 synthetic tests.
 - Add CI for Linux Python 3.11–3.14 and macOS/Windows Python 3.14.
 - Build and smoke-test wheel/source archives using isolated installations
   outside the checkout without network access during installation.

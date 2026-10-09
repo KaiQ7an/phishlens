@@ -35,14 +35,17 @@ PhishLens 是离线 `.eml` 钓鱼迹象分析 CLI，输出可解释的风险分�
 
 ### 标注场景评估
 
-`tests/scenarios.py` 含 36 个先写标签、后跑规则的合成场景：dev 24 个用于发现和修正规则缺口，holdout 12 个**不得用于调参**。`python scripts/evaluate.py`（可加 `--markdown`/`--json`）按集合报告结果；钓鱼场景评为 suspicious 或 high 即算检出。
+`tests/scenarios.py` 含 66 个先写标签、后跑规则的合成场景，`SPLITS = ("dev", "holdout", "holdout2")`。dev 用于发现和修正规则缺口；两个 holdout **不得用于调参**。`python scripts/evaluate.py`（可加 `--markdown`/`--json`）按集合报告；钓鱼场景评为 suspicious 或 high 即算检出。
 
-| 集合 | 精确率 | 召回率 | 修正前召回率 |
-| --- | ---: | ---: | ---: |
-| dev | 92% | 100% | 33% |
-| holdout | 100% | 33% | 17% |
+| 集合 | 数量 | 精确率 | 召回率 | 说明 |
+| --- | ---: | ---: | ---: | --- |
+| dev | 40 | 95% | 100% | 第一轮修正前 33% |
+| holdout | 12 | 100% | 83% | 原 17%；其漏报类别启发了第二轮 dev 场景，已不再是未见数据 |
+| holdout2 | 14 | 100% | 38% | 第二轮规则完成后新写、只运行一次 |
 
-dev 修正包括：显示名参与话术判断、海关/“不要报警”、银行账户变更与包裹/清关费、远程交易（人在海外、钥匙寄送）、扫码请求、SharePoint/OneDrive/Australia Post 品牌别名、正文给出密码的压缩包、HTML/SVG 附件升为 high。holdout 的提升只来自这些通用修正。剩余漏报（tax-refund、crypto-investment、macro-invoice、social-copyright-appeal）和 dev 误报 newsletter-tracked-url-text 记录在 `KNOWN_GAPS`，以 strict xfail 运行；修好后须同时删除对应条目。不要为让 holdout 通过而针对其文本加规则；需要新的未见数据时另写一批 holdout。
+两轮 dev 修正：显示名参与话术判断、海关/税务机关、“不要报警”、银行账户变更与包裹费、远程交易、扫码、投资保证收益、账号封禁威胁、USDT；SharePoint/OneDrive/Australia Post 品牌别名，新增 Facebook（Meta 仅查显示名）与 Instagram；正文给密码的压缩包、HTML/SVG 与宏文档附件为 high。
+
+holdout2 漏报：remote-job-cheque、zh-brushing-task（刷单）、esign-settlement、zh-child-new-number（冒充子女）、lecturer-gift-card；另有 holdout crypto-investment 与 dev 误报 newsletter-tracked-url-text。均记录在 `KNOWN_GAPS` 并以 strict xfail 运行，修好后须删除对应条目。不要针对 holdout 文本加规则；研究这些类别时另写 dev 场景，之后再写 holdout3。
 
 ## 模块地图
 
@@ -58,7 +61,7 @@ dev 修正包括：显示名参与话术判断、海关/“不要报警”、银
 | `cli.py` / `__main__.py` | 安装命令、参数及退出码 |
 | `intel.py` | 离线接口占位；尚无外部信誉查询 |
 | `tests/` | 合成 fixtures 与回归测试 |
-| `tests/scenarios.py` / `scripts/evaluate.py` | 36 个已标注合成场景（dev/holdout）、`KNOWN_GAPS` 与精确率/召回率评估 |
+| `tests/scenarios.py` / `scripts/evaluate.py` | 66 个已标注合成场景（dev/holdout/holdout2）、`KNOWN_GAPS` 与按集合的精确率/召回率评估 |
 | `scripts/verify_distribution.py` | 检出目录外新环境中的 wheel/sdist 安装与 CLI 检查 |
 | `.github/workflows/ci.yml` | 跨版本/平台测试、构建和普通 CI 构件；不发布版本 |
 
@@ -97,14 +100,14 @@ python scripts/verify_distribution.py --dist-dir "$phishlens_dist_dir" --build-d
 
 ## 本轮最终验证记录
 
-- 规则修正位于提交 `5472b8a` 及之前，本文件所在文档提交之后推送到 `origin/main`。
-- Python 3.14.8 重装 wheel 后：**431 passed, 5 xfailed**（xfail 为已记录的已知缺口）。
-- wheel/sdist 构建、`twine check` 及仓库外两个新环境中的离线包检查全部通过；sdist 包含场景与评估脚本。
-- 六封公开 fixture：正常邮件 0；五封钓鱼均为 high（suspicious_attachment 因 HTML 附件升级为 85）。README 示例输出已按显示名参与判断后的证据更新。
+- 规则与场景提交截至 `74bad41`，本文件所在文档提交之后推送到 `origin/main`。
+- Python 3.14.8 重装 wheel 后：**464 passed, 7 xfailed**（xfail 为已记录的已知缺口）。
+- wheel/sdist 构建、`twine check` 及仓库外两个新环境中的离线包检查全部通过。
+- 六封公开 fixture：正常邮件 0；五封钓鱼均为 high。
 - 上一个已验证 CI 运行见 [CI 运行](https://github.com/KaiQ7an/phishlens/actions/runs/37727234391)；本轮推送后的 CI 结果需在 GitHub Actions 中核对。
 
 ## 下一步优先级
 
-1. 已完成第一批 dev/holdout 标注场景。下一步：将剩余 holdout 漏报类型作为新的 dev 问题研究（避免直接照抄 holdout 文本），再另写一批全新的 holdout 场景检验泛化；补充误报场景（尤其是正常的付款、扫码登录和含密码说明的工作邮件）。
+1. 针对 holdout2 漏报类别（求职/刷单、冒充亲属、电子签名、礼品卡请求）另写 dev 场景再修规则，注意不要照抄 holdout2 文本；之后写全新的 holdout3 检验。继续补充易误报的正常邮件。
 2. 明确许可证，完成陌生用户安装和报告理解的最终检查，再单独执行正式发布步骤。正式发布仍保持延后。
 3. 后续可研究更完整的离线域名数据、可配置品牌/语言规则和批量报告。公开 Web 服务或外部信誉查询属于新范围，不能悄悄加入当前离线 CLI。

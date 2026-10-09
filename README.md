@@ -153,15 +153,18 @@ accuracy on real email.
   punycode, mixed scripts, bare IP addresses, URL shorteners, user-info tricks,
   insecure login-style URLs, and form destinations.
 - Attachment filenames and extensions: executables, double extensions, macro
-  documents, HTML/SVG files, disk images, and archives, including named inline
+  documents and HTML/SVG files (high risk), disk images, and archives, including named inline
   MIME parts. An archive whose password is given in the message text is flagged
   as high risk; the archive itself is never opened.
-- English and Chinese language suggesting urgency, authority, secrecy, unusual
-  payments or bank-detail changes, money wanted before any meeting or
-  inspection, and requests to scan a QR code. The sender's display name is
+- English and Chinese language suggesting urgency, authority (including tax
+  offices), secrecy, unusual payments or bank-detail changes, guaranteed
+  investment returns, account takedown threats, money wanted before any meeting
+  or inspection, and requests to scan a QR code. The sender's display name is
   read with the subject and body; keywords inside URLs are excluded.
 - Product names such as SharePoint, OneDrive and Australia Post count as their
-  brands in display names and domains.
+  brands in display names and domains. Protected brands include Monash,
+  Microsoft, Google, Apple, PayPal, CommBank, Australia Post, myGov, Facebook
+  (Meta) and Instagram.
 
 ## Scoring
 
@@ -207,22 +210,23 @@ Its support community also describes [intermediate click-tracking links](https:/
 
 ## Evaluation
 
-`scripts/evaluate.py` scores 36 labelled synthetic scenarios in
+`scripts/evaluate.py` scores 66 labelled synthetic scenarios in
 `tests/scenarios.py` (`--markdown` or `--json` for other formats). Each
-scenario's label was written before the rules were run against it. Scenarios
-are split into a **dev** set, used to find and fix rule gaps, and a **holdout**
-set, which is never used for tuning and shows how the rules handle messages
-they were not shaped around. A phishing scenario counts as detected when it
-scores suspicious or high.
+scenario's label was written before the rules were run against it. The
+**dev** split is used to find and fix rule gaps; the **holdout** splits are
+never used for tuning and show how the rules handle messages they were not
+shaped around. A phishing scenario counts as detected when it scores
+suspicious or high.
 
-| Split | Scenarios | Precision | Recall | Before dev fixes (recall) |
-| --- | ---: | ---: | ---: | ---: |
-| dev | 24 | 92% | 100% | 33% |
-| holdout | 12 | 100% | 33% | 17% |
+| Split | Scenarios | Precision | Recall | Notes |
+| --- | ---: | ---: | ---: | --- |
+| dev | 40 | 95% | 100% | Recall was 33% before the first round of fixes |
+| holdout | 12 | 100% | 83% | Was 17%; its missed categories later shaped dev scenarios, so it is no longer unseen |
+| holdout2 | 14 | 100% | 38% | Fresh set, written after the latest rules and run once |
 
-The gap between dev and holdout recall is the honest result: the rules now
-cover the dev scenarios but still miss most unseen phishing (tax refunds,
-investment scams, macro invoices, copyright appeals). Known misses and the
+The holdout2 figure is the honest one: the rules cover what they were built
+from, but still miss most unfamiliar lures (job and task scams, family
+impersonation, e-signature lures, gift-card favours). Known misses and the
 one dev false alarm, a newsletter whose tracked link shows the final URL as
 its text, are listed in `KNOWN_GAPS` and run as strict expected failures, so a
 fix or regression is reported by the test suite. These are small synthetic
@@ -269,7 +273,7 @@ python -m pip install '.[dev]'
 python -m pytest -q
 ```
 
-The current suite has 436 tests (including 5 expected failures for known
+The current suite has 471 tests (including 7 expected failures for known
 gaps) for message parsing, input limits, malformed MIME,
 text decoding, authentication-header ambiguity, domains, links, inline/container
 attachments, language signals, scoring, mailing-route boundaries, safe report
