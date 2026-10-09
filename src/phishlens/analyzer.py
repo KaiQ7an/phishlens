@@ -9,7 +9,7 @@ from urllib.parse import urlsplit
 
 from . import attachments as attachment_rules
 from .auth import AuthVerdicts, parse_authentication_results
-from .content import asking_text, find_callback_number, find_signals
+from .content import CHAT_APP_DOMAINS, asking_text, find_callback_number, find_signals
 from .domains import (PROTECTED_BRANDS, PROTECTED_DOMAINS, brand_terms, find_lookalike, is_government,
                       is_ip, is_mixed_script, same_site, to_unicode)
 from .intel import OfflineIntel, ThreatIntel
@@ -249,7 +249,13 @@ def _content_findings(email: ParsedEmail, visible_html_text: str) -> list[Findin
     hits = find_signals(text)
     codes = {signal.code for signal, _ in hits}
     identity = "\n".join((display_name, email.subject)).lower()
+    sender_domain = email.sender.domain if email.sender else ""
     for signal, matched in hits:
+        if signal.code == "content.off_channel" and sender_domain:
+            matched = [m for m in matched
+                       if not any(same_site(sender_domain, d) for d in CHAT_APP_DOMAINS.get(m, ()))]
+            if not matched:
+                continue
         evidence = ", ".join(f"'{m}'" for m in matched[:5])
         if signal.code == "content.authority" and email.sender and not is_government(email.sender.domain):
             # Mentioning the police in passing is ordinary ("contact Victoria

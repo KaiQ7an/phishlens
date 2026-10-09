@@ -31,7 +31,12 @@ SIGNALS: tuple[Signal, ...] = (
         "update your payment", "login to verify", "verification code", "one-time code",
         "bank account number", "copy of your id", "copy of your passport",
         "card details", "verify your card", "update your card", "card number",
-        "密码", "验证码", "登录验证", "账户验证", "身份证号", "银行卡号", "身份证照片", "银行卡信息", "信用卡信息",
+        "登录验证", "账户验证", "身份证号", "银行卡号", "身份证照片", "银行卡信息", "信用卡信息",
+    ), (
+        # Chinese asks to hand over a password or code. A bare 密码 also appears
+        # in advice such as 修改密码 (change your password), so it is not enough.
+        r"(?:回复|提供|告知|告诉|发送|填写|输入|报)[^。！？\n]{0,12}(?:密码|验证码)",
+        r"(?:密码|验证码)[^。！？\n]{0,6}(?:告诉|告知|发给|回复|报给)",
     )),
     Signal("content.payment", "medium", "Asks for money or an unusual payment method", (
         "gift card", "wire transfer", "bank transfer", "bitcoin", "western union", "processing fee",
@@ -125,7 +130,7 @@ SIGNALS: tuple[Signal, ...] = (
         "copyright infringement", "will be disabled", "will be permanently deleted", "scheduled for deletion",
         "violated our community", "violates our community", "submit an appeal",
         "will be deleted", "avoid losing", "has lapsed", "will lapse", "will be cancelled",
-        "will be canceled", "将被取消", "征信", "不良记录",
+        "will be canceled", "将被取消", "征信", "不良记录", "数据丢失",
         "侵犯版权", "版权侵权", "将被封禁", "永久封禁", "将被删除", "违反社区",
     )),
     Signal("content.qr_code", "medium", "Asks you to scan a QR code, which hides the link from checks", (
@@ -164,6 +169,18 @@ _NEGATION_CUES = ("never ask", "never request", "will not ask", "won't ask", "ne
                   "do not share", "never give out",
                   "绝不会", "不会向您索要", "不会要求", "不会索要", "请勿透露", "切勿透露", "不要透露")
 _SENTENCE_RE = re.compile(r"(?<=[.!?])\s+|[。！？；;\n]+")
+
+
+# Chat apps whose own notices name them; a mention from their own domain is
+# not a move to another channel.
+CHAT_APP_DOMAINS: dict[str, tuple[str, ...]] = {
+    "whatsapp": ("whatsapp.com", "whatsapp.net", "facebookmail.com"),
+    "telegram": ("telegram.org",),
+    "wechat": ("wechat.com", "tencent.com", "qq.com"),
+    "微信": ("wechat.com", "tencent.com", "qq.com"),
+    "kakaotalk": ("kakao.com",),
+    "viber": ("viber.com",),
+}
 
 
 def asking_text(text: str) -> str:

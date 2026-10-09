@@ -299,3 +299,21 @@ def test_legal_threat_with_a_number_to_call_is_callback_phishing():
     codes = {f.code for f in analyze(_email("Lawyer", "firm.example",
                                             "We will call you after the court hearing on 3 November.")).findings}
     assert "content.callback" not in codes
+
+
+def test_chat_apps_own_notices_are_not_off_channel_moves():
+    codes = {f.code for f in analyze(_email("WhatsApp", "whatsapp.com", "Open WhatsApp to re-register.")).findings}
+    assert "content.off_channel" not in codes
+    codes = {f.code for f in analyze(_email("Recruiter", "mail-host.example", "Message me on WhatsApp.")).findings}
+    assert "content.off_channel" in codes
+
+
+@pytest.mark.parametrize("body, asks", [
+    ("请回复您的邮箱账号和登录密码。", True),
+    ("请把短信中的验证码告诉客服。", True),
+    ("如非本人操作，请及时修改密码。", False),
+    ("不要使用生日作为密码。", False),
+])
+def test_chinese_password_requests_need_a_request(body, asks):
+    codes = {f.code for f in analyze(_email("Notice", "mail-host.example", body)).findings}
+    assert ("content.credentials" in codes) == asks

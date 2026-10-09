@@ -1548,9 +1548,6 @@ KNOWN_GAPS: dict[str, str] = {
         "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
     "dev/phish/bonus-letter-login": "A 'log in to view' request with a link to the sender's own login page reads like "
                                     "a genuine HR portal notice; telling them apart needs sender reputation.",
-    "dev/legit/whatsapp-own-notice": "The chat app's own notice is read as moving the conversation to a chat app.",
-    "dev/phish/zh-ask-password-a": "Asking for a password by reply scores only one medium signal; data-loss "
-                                   "threats (数据丢失) are not recognised.",
     "holdout2/phish/remote-job-cheque": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout2/phish/esign-settlement": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout3/phish/unpaid-toll": "Missed by the round-three rules (holdout3: not used for tuning).",
@@ -1576,6 +1573,4 @@ KNOWN_GAPS: dict[str, str] = {
     "holdout7/phish/new-pet-deposit": "Missed by the rules after the negation change (holdout7: not used for tuning).",
     "holdout7/legit/loyalty-draw-winner": "False alarm: a loyalty prize with a claim deadline reads as a windfall "
                                           "lure with time pressure.",
-    "holdout7/legit/zh-wechat-security": "False alarm: the chat app's own login notice mentions WeChat and "
-                                         "advises changing the password (修改密码).",
 }
