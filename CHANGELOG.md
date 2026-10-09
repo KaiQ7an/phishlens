@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added
+
+- Analyse several files or a directory of `.eml` files in one run. Text output
+  is a summary table sorted by score; `--json` adds counts, full reports and
+  the files that could not be analysed. `--fail-on` applies to every file, and
+  an incomplete run exits with status 1.
+
 ### Hardened
 
 - Bound `.eml` input to 25 MiB by default, with configurable file limits,
@@ -84,7 +91,7 @@
   unseen holdouts ranged from 10% to 42% with no false alarms; the README
   explains what the rounds show. Remaining misses run as strict expected
   failures.
-- Expand the regression suite to 620 synthetic tests.
+- Expand the regression suite to 625 synthetic tests.
 - Add CI for Linux Python 3.11–3.14 and macOS/Windows Python 3.14.
 - Build and smoke-test wheel/source archives using isolated installations
   outside the checkout without network access during installation.

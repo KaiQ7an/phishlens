@@ -56,7 +56,15 @@ phishlens analyze /path/to/message.eml --json > report.json
 phishlens analyze /path/to/message.eml --fail-on high
 phishlens analyze /path/to/message.eml --max-size-mb 50
 python -m phishlens analyze /path/to/message.eml
+phishlens analyze /path/to/folder/                # every .eml in the folder
+phishlens analyze one.eml two.eml --json > summary.json
 ```
+
+Several paths, or a directory, give a summary table sorted by score, with each
+file's verdict and top finding; directories are not searched recursively. Run
+the command on a single file to see all findings and evidence. With `--json`,
+the summary contains counts, every full report, and the files that could not
+be analysed.
 
 Export the complete original message as `.eml`, including its headers and MIME
 body. A screenshot or copied body text cannot preserve authentication headers,
@@ -86,8 +94,11 @@ messages, pipes, and device files. It also rejects MIME trees with more than
 | Exit status | Meaning |
 | --- | --- |
 | 0 | Analysis completed below the requested threshold, or no threshold was set |
-| 1 | The input could not be read, was empty, or exceeded supported input limits |
-| 2 | The risk threshold was reached, or command-line arguments were invalid |
+| 1 | An input could not be read, was empty, or exceeded supported input limits, or a directory had no `.eml` files |
+| 2 | The risk threshold was reached by any analysed file, or command-line arguments were invalid |
+
+In a batch, status 1 takes precedence over status 2: an incomplete run is
+reported as incomplete even if another file reached the threshold.
 
 JSON reports contain the source path, subject, sender, recorded authentication
 results, score, risk level, findings, extracted links, and attachment metadata
@@ -313,7 +324,7 @@ python -m pip install '.[dev]'
 python -m pytest -q
 ```
 
-The current suite has 620 tests (including 18 expected failures for known
+The current suite has 625 tests (including 18 expected failures for known
 gaps) for message parsing, input limits, malformed MIME,
 text decoding, authentication-header ambiguity, domains, links, inline/container
 attachments, language signals, scoring, mailing-route boundaries, safe report
@@ -381,7 +392,8 @@ phishlens --version
   scenarios and compatibility checks, decide licensing, and complete final
   usability review. Tagged releases and PyPI publication remain deferred.
 - **Later:** broader domain data and configurable brand/language rules, plus
-  batch analysis and report comparison.
+  report comparison. Batch analysis of several files or a directory is
+  available now.
 - **Optional future work:** explicit opt-in reputation lookups with caching and
   clear disclosure of submitted URLs/hashes. `intel.py` currently contains an
   interface stub only; external lookups are not implemented.

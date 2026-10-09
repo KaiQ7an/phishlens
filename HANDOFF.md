@@ -60,7 +60,7 @@ PhishLens 是离线 `.eml` 钓鱼迹象分析 CLI，输出可解释的风险分�
 | `content.py` / `attachments.py` | 中英文话术与附件文件名规则 |
 | `analyzer.py` / `scoring.py` | 组合发现、校准条件、评分与风险等级 |
 | `display.py` / `report.py` | 安全转义、文本与 JSON 报告 |
-| `cli.py` / `__main__.py` | 安装命令、参数及退出码 |
+| `cli.py` / `__main__.py` | 安装命令、参数、退出码与批量（多文件/目录）汇总 |
 | `intel.py` | 离线接口占位；尚无外部信誉查询 |
 | `tests/` | 合成 fixtures 与回归测试；`test_evaluate.py` 检查评估脚本 |
 | `tests/scenarios.py` / `scripts/evaluate.py` | 172 个已标注合成场景（dev 与 holdout–holdout5）、`KNOWN_GAPS`、按集合及 variant/new 的评估 |
@@ -112,4 +112,4 @@ python scripts/verify_distribution.py --dist-dir "$phishlens_dist_dir" --build-d
 
 1. 评估方法：继续“dev 两种措辞 → 新 holdout 只跑一次”的循环，重点是 holdout5 漏报的新类别（多付退款、校园贷注销、酒店预订确认、法律催收电话）；同时考虑非短语的方法（例如可选的本地统计模型），但训练数据不能包含真实邮件，需先与用户确认数据来源与许可。
 2. 明确许可证，完成陌生用户安装和报告理解的最终检查，再单独执行正式发布步骤。正式发布仍保持延后。
-3. 后续可研究更完整的离线域名数据、可配置品牌/语言规则和批量报告。公开 Web 服务或外部信誉查询属于新范围，不能悄悄加入当前离线 CLI。
+3. 批量分析已完成（多文件或目录，汇总表与 JSON）。后续可研究更完整的离线域名数据、可配置品牌/语言规则和报告对比。公开 Web 服务或外部信誉查询属于新范围，不能悄悄加入当前离线 CLI。
