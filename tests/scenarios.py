@@ -4,10 +4,10 @@ Every message here is invented for evaluation. Labels and splits were written
 before the analyzer was run on them:
 
 * ``dev`` scenarios may guide rule changes.
-* ``holdout`` to ``holdout4`` scenarios must never be used to tune rules;
+* ``holdout`` to ``holdout5`` scenarios must never be used to tune rules;
   they only measure whether a change generalises. Do not edit a holdout
   scenario to make it pass. Each holdout's missed categories shaped the
-  next round of dev scenarios, so the newest set, ``holdout4``, is the
+  next round of dev scenarios, so the newest set, ``holdout5``, is the
   current unseen measure.
 
 A phishing scenario counts as detected when the verdict is suspicious or high.
@@ -65,7 +65,7 @@ def build(sender: str, subject: str, text: str, *, html: str | None = None, auth
     return msg.as_bytes()
 
 
-SPLITS = ("dev", "holdout", "holdout2", "holdout3", "holdout4")
+SPLITS = ("dev", "holdout", "holdout2", "holdout3", "holdout4", "holdout5")
 
 FAKE = b"PhishLens evaluation placeholder; not a real document or program.\n"
 
@@ -941,7 +941,126 @@ def _holdout_round_four() -> list[Scenario]:
     ]
 
 
-SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _dev_round_five() + _holdout() + _holdout_round_two() + _holdout_round_three() + _holdout_round_four())
+def _holdout_round_five() -> list[Scenario]:
+    """Added 2026-10-09 after the round-five intent rules, before running them.
+    ``variant-`` rewords covered categories; ``new-`` categories were never
+    targeted. Run once with fixed labels; never used for tuning."""
+    s, p = "legitimate", "phishing"
+    return [
+        Scenario("holdout5/phish/variant-zh-customs-parcel", "holdout5", p, "Chinese delivery scam",
+                 "International parcel 'held by customs' until duties are paid on a linked page.",
+                 build("国际物流中心 <service@intl-express-cn.example>", "您的国际包裹已被扣留",
+                       "您好，您的国际包裹因申报信息不完整被暂扣。请在48小时内通过下方页面补全收件信息"
+                       "并支付关税，超时包裹将被退回。\nhttps://intl-express-cn.example/clear\n")),
+        Scenario("holdout5/phish/variant-bank-card-hold", "holdout5", p, "bank impersonation",
+                 "Bank card 'temporarily held' with a link to a host using the bank's name.",
+                 build("CommBank Alerts <alerts@commbank-card-services.example>", "Temporary hold on your card",
+                       "We've placed a temporary hold on your card after unusual activity. Review recent "
+                       "transactions to restore access.\n",
+                       html='<p><a href="https://commbank-card-services.example/review">Review activity</a></p>')),
+        Scenario("holdout5/phish/variant-zh-stock-teacher", "holdout5", p, "Chinese investment scam",
+                 "Stock 'teacher' who recommends daily picks in a private group.",
+                 build("李老师助理 <assistant.li@stock-picks-club.example>", "免费领取今日牛股",
+                       "李老师每天在群里免费推荐牛股，上周学员平均盈利35%。扫码进群即可领取，"
+                       "名额只剩最后10个。\n")),
+        Scenario("holdout5/phish/variant-grandchild-bail", "holdout5", p, "family impersonation",
+                 "'Grandson' in trouble asks for bail money and secrecy.",
+                 build("Ethan <ethan.help.now@mail-host.example>", "Grandma please help",
+                       "Grandma, it's Ethan. I had a car accident and I'm at the police station. I need "
+                       "$3,000 for bail today. Please don't tell Mum, she'll be so upset.\n")),
+        Scenario("holdout5/phish/variant-mystery-shopper", "holdout5", p, "job scam",
+                 "Mystery shopper job that has the reader move money through a transfer service.",
+                 build("Shopper Program <assign@retail-evaluators.example>", "Your first mystery shopping assignment",
+                       "Welcome to our mystery shopper program. We will deposit $2,000 into your account. "
+                       "Keep $300 as your pay and send the rest through a money transfer service to "
+                       "evaluate it.\n")),
+        Scenario("holdout5/phish/variant-mygov-message", "holdout5", p, "government impersonation",
+                 "Fake myGov inbox notice linking to a host using the myGov name.",
+                 build("myGov <inbox@mygov-messages-au.example>", "You have a new message",
+                       "You have a new message about your tax refund. Sign in to view it.\n",
+                       html='<p><a href="https://mygov-messages-au.example/signin">Sign in</a></p>')),
+        Scenario("holdout5/phish/variant-pastor-gift-cards", "holdout5", p, "impersonation",
+                 "Free-mail 'pastor' asks for gift cards and photos of their backs.",
+                 build("Pastor John Reid <pastor.john.reid@gmail.com>", "Request",
+                       "Hello, I need you to get some gift cards for cancer patients I'm visiting today. "
+                       "Scratch the back and send me pictures of them. I'll refund you on Sunday.\n")),
+        Scenario("holdout5/phish/new-overpayment-refund", "holdout5", p, "refund scam",
+                 "Claims an accidental over-refund and asks for the difference back.",
+                 build("Refund Department <refunds@account-refund-desk.example>", "Refund error on your account",
+                       "Due to a system error we refunded $4,900 instead of $49 to your account. Please "
+                       "return the difference of $4,851 today to avoid legal action.\n")),
+        Scenario("holdout5/phish/new-zh-campus-loan", "holdout5", p, "Chinese credit scam",
+                 "Fake finance platform says a student loan account must be closed to protect credit.",
+                 build("金融服务中心 <service@credit-help-cn.example>", "关于注销校园贷账户的通知",
+                       "根据最新规定，您在校期间开通的校园贷账户需要注销，否则将影响个人征信。"
+                       "请联系客服，按指引将账户余额转入监管账户完成注销。\n")),
+        Scenario("holdout5/phish/new-booking-reconfirm", "holdout5", p, "booking scam",
+                 "Hotel booking needs card details 'reconfirmed' or it will be cancelled.",
+                 build("Booking Partner Desk <reservations@hotel-reconfirm.example>", "Action needed for your booking",
+                       "Your reservation at Harbour View Hotel could not be guaranteed. Reconfirm your card "
+                       "details within 12 hours or your booking will be cancelled.\n",
+                       html='<p><a href="https://hotel-reconfirm.example/guarantee">Reconfirm booking</a></p>')),
+        Scenario("holdout5/phish/new-legal-callback", "holdout5", p, "callback phishing",
+                 "Threat of legal action with a phone number to call, but no link.",
+                 build("Legal Department <legal@debt-recovery-notice.example>", "Final notice before legal action",
+                       "A claim has been filed against you for an outstanding debt. To stop legal "
+                       "proceedings, call our legal department on +61 2 5550 1234 today.\n")),
+        Scenario("holdout5/phish/new-cloud-billing-suspension", "holdout5", p, "credential harvest",
+                 "Cloud account 'suspended for billing' with a link to an unrelated console host.",
+                 build("Cloud Billing <billing@cloud-console-billing.example>", "Account suspended: billing problem",
+                       "Your cloud account has been suspended because of a billing problem. Update your "
+                       "payment method to restore your services.\n",
+                       html='<p><a href="https://cloud-console-billing.example/billing">Update billing</a></p>')),
+        Scenario("holdout5/legit/commbank-statement", "holdout5", s, "bank notice",
+                 "Real bank statement notice.",
+                 build("CommBank <statements@commbank.com.au>", "Your statement is ready",
+                       "Your statement for the period ending 30 September is ready to view in NetBank.\n")),
+        Scenario("holdout5/legit/mygov-inbox", "holdout5", s, "government notice",
+                 "Real government inbox notice.",
+                 build("myGov <noreply@my.gov.au>", "You have a new message in myGov",
+                       "You have a new message in your myGov inbox. Sign in to myGov to read it.\n")),
+        Scenario("holdout5/legit/store-refund", "holdout5", s, "receipt",
+                 "Real store refund confirmation.",
+                 build("JB Hi-Fi <orders@jbhifi.com.au>", "Your refund has been processed",
+                       "We've refunded $49.00 to your original payment method. It may take 3-5 business "
+                       "days to appear.\n")),
+        Scenario("holdout5/legit/booking-confirmed", "holdout5", s, "booking",
+                 "Real booking confirmation.",
+                 build("Booking.com <noreply@booking.com>", "Your booking is confirmed",
+                       "Your stay at Harbour View Hotel from 12 to 14 December is confirmed. You'll pay at "
+                       "the property.\n")),
+        Scenario("holdout5/legit/cloud-bill", "holdout5", s, "bill",
+                 "Real cloud provider monthly bill.",
+                 build("Amazon Web Services <no-reply@aws.amazon.com>", "Your AWS bill is available",
+                       "Your AWS bill for September is $3.42. It will be charged to your card on file.\n")),
+        Scenario("holdout5/legit/grandchild-visit", "holdout5", s, "personal",
+                 "Grandchild arranging a visit.",
+                 build("Ethan Brown <ethan.brown.04@gmail.com>", "Visiting Saturday",
+                       "Hi Grandma, I'm coming on the train Saturday. Could you pick me up from the station "
+                       "at 11? Can't wait to see you!\n")),
+        Scenario("holdout5/legit/library-overdue", "holdout5", s, "university notice",
+                 "Real library overdue notice with a replacement charge.",
+                 build("Monash Library <library@monash.edu>", "Final notice: overdue item",
+                       "The item 'Introduction to Algorithms' is overdue. Return or renew it by Friday to "
+                       "avoid a replacement charge of $120.\n")),
+        Scenario("holdout5/legit/it-remote-support", "holdout5", s, "IT notice",
+                 "Real IT ticket update about a requested remote session.",
+                 build("Monash eSolutions <servicedesk@monash.edu>", "Ticket 4411: remote session booked",
+                       "As requested, a technician will connect to your laptop with remote access at 2pm "
+                       "today to fix the printer driver.\n")),
+        Scenario("holdout5/legit/zh-sf-delivered", "holdout5", s, "Chinese delivery notice",
+                 "Real courier delivery confirmation.",
+                 build("顺丰速运 <notice@sf-express.com>", "您的快递已签收",
+                       "您好，您的快递已于今日10:15签收，感谢使用顺丰速运。\n")),
+        Scenario("holdout5/legit/zh-securities-notice", "holdout5", s, "Chinese financial notice",
+                 "Real brokerage reminder about risk.",
+                 build("华泰证券 <service@htsc.com.cn>", "投资者风险提示",
+                       "尊敬的客户，近期市场波动较大，请理性投资。任何承诺高收益的“荐股群”均为诈骗，"
+                       "请勿添加陌生人微信。\n")),
+    ]
+
+
+SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _dev_round_five() + _holdout() + _holdout_round_two() + _holdout_round_three() + _holdout_round_four() + _holdout_round_five())
 
 
 # Scenario id -> why the current rules miss it. Remove an entry when it is fixed.
@@ -960,4 +1079,11 @@ KNOWN_GAPS: dict[str, str] = {
     "holdout3/phish/onedrive-invoice": "Missed by the round-three rules (holdout3: not used for tuning).",
     "holdout4/phish/variant-ceo-wire": "Missed by the round-four rules (holdout4: not used for tuning).",
     "holdout4/phish/variant-gold-trading": "Missed by the round-four rules (holdout4: not used for tuning).",
+    "holdout5/phish/variant-zh-customs-parcel": "Missed by the round-five rules (holdout5: not used for tuning).",
+    "holdout5/phish/variant-mystery-shopper": "Missed by the round-five rules (holdout5: not used for tuning).",
+    "holdout5/phish/variant-pastor-gift-cards": "Missed by the round-five rules (holdout5: not used for tuning).",
+    "holdout5/phish/new-overpayment-refund": "Missed by the round-five rules (holdout5: not used for tuning).",
+    "holdout5/phish/new-zh-campus-loan": "Missed by the round-five rules (holdout5: not used for tuning).",
+    "holdout5/phish/new-booking-reconfirm": "Missed by the round-five rules (holdout5: not used for tuning).",
+    "holdout5/phish/new-legal-callback": "Missed by the round-five rules (holdout5: not used for tuning).",
 }
