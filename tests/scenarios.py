@@ -4,8 +4,10 @@ Every message here is invented for evaluation. Labels and splits were written
 before the analyzer was run on them:
 
 * ``dev`` scenarios may guide rule changes.
-* ``holdout`` scenarios must never be used to tune rules; they only measure
-  whether a change generalises. Do not edit a holdout scenario to make it pass.
+* ``holdout`` and ``holdout2`` scenarios must never be used to tune rules;
+  they only measure whether a change generalises. Do not edit a holdout
+  scenario to make it pass. The categories ``holdout`` missed shaped the
+  round-two dev scenarios, so ``holdout2`` is the current unseen set.
 
 A phishing scenario counts as detected when the verdict is suspicious or high.
 A legitimate scenario counts as correct only when the verdict is low.
@@ -29,7 +31,7 @@ PASS = "mx.receiver.example; spf=pass smtp.mailfrom={d}; dkim=pass header.d={d};
 @dataclass(frozen=True)
 class Scenario:
     id: str
-    split: str  # dev | holdout
+    split: str  # one of SPLITS
     label: str  # legitimate | phishing
     category: str
     note: str
@@ -61,6 +63,8 @@ def build(sender: str, subject: str, text: str, *, html: str | None = None, auth
         msg.add_attachment(payload, maintype=maintype, subtype=subtype, filename=filename)
     return msg.as_bytes()
 
+
+SPLITS = ("dev", "holdout", "holdout2")
 
 FAKE = b"PhishLens evaluation placeholder; not a real document or program.\n"
 
@@ -369,7 +373,92 @@ def _dev_round_two() -> list[Scenario]:
     ]
 
 
-SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _holdout())
+def _holdout_round_two() -> list[Scenario]:
+    """Added 2026-10-09 after the round-two rule changes, before running them.
+
+    Round-one holdout misses shaped the round-two dev categories, so that
+    holdout no longer measures unseen messages on its own. This set is fresh:
+    run once with its labels fixed, never used to tune rules."""
+    s, p = "legitimate", "phishing"
+    return [
+        Scenario("holdout2/phish/remote-job-cheque", "holdout2", p, "job scam",
+                 "Unsolicited remote job; a cheque is sent to buy equipment from the 'approved vendor'.",
+                 build("Hiring Team <careers@brightpath-staffing.example>", "Offer: remote administrative assistant",
+                       "Congratulations, after reviewing your profile you have been selected for a remote "
+                       "administrative assistant role at $45 per hour. We will mail you a cheque to purchase "
+                       "your work equipment from our approved vendor. Reply with your full name and address.\n")),
+        Scenario("holdout2/phish/zh-brushing-task", "holdout2", p, "Chinese task scam",
+                 "Part-time 'like and follow' task job that requires advancing money first.",
+                 build("兼职招募 <hr@easy-task-jobs.example>", "在家兼职，日结佣金",
+                       "只需手机点赞关注即可赚取佣金，每单10-50元，当天结算。新手任务需先垫付货款，"
+                       "完成后连同佣金一起返还。添加客服QQ领取任务。\n")),
+        Scenario("holdout2/phish/monash-password-expiry", "holdout2", p, "credential harvest",
+                 "Password expiry notice linking to a domain that contains the university's name.",
+                 build("Monash IT <it-notice@monash-sso-auth.example>", "Your password expires today",
+                       "Your Monash password expires today. Keep your current password by confirming it below.\n",
+                       html='<p>Your password expires today.</p>'
+                            '<p><a href="https://monash-sso-auth.example/keep">Keep current password</a></p>')),
+        Scenario("holdout2/phish/esign-settlement", "holdout2", p, "credential harvest",
+                 "E-signature lure for a 'settlement agreement' linking to an unrelated host.",
+                 build("Document Center <sign@docs-sign-portal.example>", "Please sign: Settlement agreement",
+                       "You have received a document to review and sign: Settlement agreement.pdf.\n",
+                       html='<p>Settlement agreement.pdf is waiting for your signature.</p>'
+                            '<p><a href="https://docs-sign-portal.example/review?id=55">Review document</a></p>')),
+        Scenario("holdout2/phish/scholarship-admin-fee", "holdout2", p, "advance fee",
+                 "Unexpected scholarship that needs an administration fee to secure.",
+                 build("Scholarships Office <awards@intl-scholarship-board.example>",
+                       "You have been awarded an International Excellence Scholarship",
+                       "We are pleased to inform you that you have been awarded AUD 10,000. To secure the "
+                       "award, pay the AUD 150 administration fee by bank transfer within 48 hours.\n")),
+        Scenario("holdout2/phish/zh-child-new-number", "holdout2", p, "Chinese family impersonation",
+                 "Message claiming to be the reader's child with a new number needing money urgently.",
+                 build("小明 <xiaoming.newphone@mail-host.example>", "妈，我换号了",
+                       "妈，我手机坏了，这是我新邮箱。学校急着交一笔钱，你先帮我转3000到这个账户，"
+                       "我晚点再跟你解释，先别给爸说。\n")),
+        Scenario("holdout2/phish/svg-invoice", "holdout2", p, "HTML attachment",
+                 "Invoice notice whose attachment is an SVG image.",
+                 build("Billing <billing@cloud-invoices.example>", "Invoice INV-2290 overdue",
+                       "Your invoice INV-2290 is overdue. Open the attached invoice for payment details.\n",
+                       attachments=(("INV-2290.svg", "image", "svg+xml", b"<svg xmlns='http://www.w3.org/2000/svg'/>"),))),
+        Scenario("holdout2/phish/lecturer-gift-card", "holdout2", p, "impersonation",
+                 "Free-mail account using a lecturer's name asks for an urgent favour buying gift cards.",
+                 build("Dr Sarah Chen <dr.sarahchen.office@gmail.com>", "Quick favour",
+                       "Are you available? I'm in a meeting and need you to buy four Apple gift cards for "
+                       "a student prize today. I'll reimburse you. Send me the codes when you have them.\n")),
+        Scenario("holdout2/legit/auspost-tracking", "holdout2", s, "delivery notice",
+                 "Real postal domain with tracking link on its own site.",
+                 build("Australia Post <noreply@notifications.auspost.com.au>", "Your parcel is on its way",
+                       "Your parcel is on its way and should arrive Tuesday.\n",
+                       html='<p>Your parcel should arrive Tuesday.</p>'
+                            '<p><a href="https://auspost.com.au/mypost/track/details/33ABC">Track parcel</a></p>')),
+        Scenario("holdout2/legit/zh-jd-shipped", "holdout2", s, "Chinese order notice",
+                 "Chinese retailer shipping notice from its own domain.",
+                 build("京东 <order@jd.com>", "您的订单已发货",
+                       "您好，您购买的商品已发货，预计2天内送达。可在京东App“我的订单”中查看物流。\n")),
+        Scenario("holdout2/legit/scholarship-awarded", "holdout2", s, "university notice",
+                 "Genuine scholarship award paid to the student's nominated account.",
+                 build("Monash Scholarships <scholarships@monash.edu>", "Scholarship outcome",
+                       "Congratulations, you have been awarded the Monash Merit Scholarship. Payments will be "
+                       "made to the bank account in your student record. No action is needed.\n")),
+        Scenario("holdout2/legit/esign-real", "holdout2", s, "e-signature",
+                 "Real e-signature service domain with links on its own site.",
+                 build("DocuSign <dse@docusign.net>", "Complete with DocuSign: Lease renewal",
+                       "Your property manager sent you a document to review and sign.\n",
+                       html='<p><a href="https://www.docusign.net/Signing/?ti=abc">Review document</a></p>')),
+        Scenario("holdout2/legit/m365-renewal", "holdout2", s, "subscription notice",
+                 "Real vendor subscription renewal notice.",
+                 build("Microsoft <microsoft-noreply@microsoft.com>", "Your Microsoft 365 subscription will renew",
+                       "Your Microsoft 365 Family subscription will renew on 1 November for $139.00. "
+                       "To change this, visit https://account.microsoft.com/services\n")),
+        Scenario("holdout2/legit/it-password-reminder", "holdout2", s, "IT notice",
+                 "Genuine password expiry reminder pointing to the university's own site.",
+                 build("Monash eSolutions <servicedesk@monash.edu>", "Your password will expire in 7 days",
+                       "Your Monash password will expire in 7 days. Change it at https://my.monash.edu/password "
+                       "or contact the service desk. We will never ask you to send your password.\n")),
+    ]
+
+
+SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _holdout() + _holdout_round_two())
 
 
 # Scenario id -> why the current rules miss it. Remove an entry when it is fixed.
@@ -378,4 +467,9 @@ KNOWN_GAPS: dict[str, str] = {
         "Click tracking whose visible text is the final URL reads as an anchor mismatch; only Constant "
         "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
     "holdout/phish/crypto-investment": "Missed by the baseline rules (holdout: not used for tuning).",
+    "holdout2/phish/remote-job-cheque": "Missed by the round-two rules (holdout2: not used for tuning).",
+    "holdout2/phish/zh-brushing-task": "Missed by the round-two rules (holdout2: not used for tuning).",
+    "holdout2/phish/esign-settlement": "Missed by the round-two rules (holdout2: not used for tuning).",
+    "holdout2/phish/zh-child-new-number": "Missed by the round-two rules (holdout2: not used for tuning).",
+    "holdout2/phish/lecturer-gift-card": "Missed by the round-two rules (holdout2: not used for tuning).",
 }

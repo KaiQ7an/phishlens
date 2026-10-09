@@ -3,7 +3,7 @@
 A phishing scenario is a true positive when the verdict is suspicious or high;
 a legitimate scenario is a true negative only when the verdict is low. Results
 are reported separately for the dev split (which may guide rule changes) and
-the holdout split (which must not), so tuning cannot hide in the totals.
+each holdout split (which must not), so tuning cannot hide in the totals.
 
 These are small synthetic sets written for regression checking. The numbers
 describe behaviour on these scenarios, not accuracy on real email.
@@ -26,7 +26,7 @@ sys.path.insert(0, str(ROOT / "tests"))
 
 from phishlens.analyzer import analyze  # noqa: E402
 from phishlens.message import parse_bytes  # noqa: E402
-from scenarios import SCENARIOS, Scenario  # noqa: E402
+from scenarios import SCENARIOS, SPLITS, Scenario  # noqa: E402
 
 
 @dataclass(frozen=True)
@@ -69,8 +69,7 @@ def metrics(outcomes: list[Outcome]) -> dict:
 
 
 def by_split(outcomes: list[Outcome]) -> dict[str, dict]:
-    splits = {"dev": [o for o in outcomes if o.scenario.split == "dev"],
-              "holdout": [o for o in outcomes if o.scenario.split == "holdout"]}
+    splits = {name: [o for o in outcomes if o.scenario.split == name] for name in SPLITS}
     splits["all"] = outcomes
     return {name: metrics(items) for name, items in splits.items()}
 
@@ -81,9 +80,9 @@ def _pct(value: float | None) -> str:
 
 def to_text(outcomes: list[Outcome]) -> str:
     lines = ["PhishLens evaluation on labelled synthetic scenarios", ""]
-    lines.append(f"{'split':<8} {'n':>3} {'TP':>3} {'FN':>3} {'FP':>3} {'TN':>3} {'precision':>10} {'recall':>7} {'accuracy':>9}")
+    lines.append(f"{'split':<9} {'n':>3} {'TP':>3} {'FN':>3} {'FP':>3} {'TN':>3} {'precision':>10} {'recall':>7} {'accuracy':>9}")
     for name, m in by_split(outcomes).items():
-        lines.append(f"{name:<8} {m['scenarios']:>3} {m['true_positive']:>3} {m['false_negative']:>3} "
+        lines.append(f"{name:<9} {m['scenarios']:>3} {m['true_positive']:>3} {m['false_negative']:>3} "
                      f"{m['false_positive']:>3} {m['true_negative']:>3} {_pct(m['precision']):>10} "
                      f"{_pct(m['recall']):>7} {_pct(m['accuracy']):>9}")
     wrong = [o for o in outcomes if not o.correct]

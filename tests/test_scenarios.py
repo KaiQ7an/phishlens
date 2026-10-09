@@ -9,7 +9,7 @@ import pytest
 
 from phishlens.analyzer import analyze
 from phishlens.message import parse_bytes
-from scenarios import KNOWN_GAPS, SCENARIOS
+from scenarios import KNOWN_GAPS, SCENARIOS, SPLITS
 
 
 def _cases():
@@ -34,11 +34,11 @@ def test_scenario_metadata_is_consistent():
     assert len(ids) == len(set(ids))
     assert set(KNOWN_GAPS) <= set(ids)
     for scenario in SCENARIOS:
-        assert scenario.split in {"dev", "holdout"} and scenario.id.startswith(scenario.split + "/")
+        assert scenario.split in SPLITS and scenario.id.startswith(scenario.split + "/")
         assert scenario.label in {"legitimate", "phishing"}
 
 
 def test_both_splits_contain_both_labels():
-    for split in ("dev", "holdout"):
+    for split in SPLITS:
         labels = {s.label for s in SCENARIOS if s.split == split}
         assert labels == {"legitimate", "phishing"}
