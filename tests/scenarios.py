@@ -559,6 +559,43 @@ def _dev_round_seven() -> list[Scenario]:
     ]
 
 
+def _dev_round_eight() -> list[Scenario]:
+    """Added 2026-10-09 after holdout7's false alarms: chat apps' own notices,
+    which name the app, and Chinese advice to change a password, which names
+    the password without asking for it. Two wordings each, plus phishing that
+    does ask for a password or code in Chinese."""
+    s, p = "legitimate", "phishing"
+    return [
+        Scenario("dev/legit/whatsapp-own-notice", "dev", s, "security notice",
+                 "Chat app's own email about a new registration.",
+                 build("WhatsApp <noreply@whatsapp.com>", "Your WhatsApp account was registered on a new phone",
+                       "Your WhatsApp account was registered on a new phone. If this wasn't you, open "
+                       "WhatsApp and re-register your number immediately.\n")),
+        Scenario("dev/legit/telegram-own-notice", "dev", s, "security notice",
+                 "Chat app's own email about a login.",
+                 build("Telegram <noreply@telegram.org>", "New login to Telegram",
+                       "We detected a login to your Telegram account from a new device. If this was not you, "
+                       "terminate the session in Telegram settings.\n")),
+        Scenario("dev/legit/zh-qq-mail-security", "dev", s, "Chinese security notice",
+                 "Mail provider advising a password change after an unusual login.",
+                 build("QQ邮箱 <security@qq.com>", "异地登录提醒",
+                       "您的QQ邮箱于今日在异地登录。如非本人操作，请及时修改密码并开启二次验证。\n")),
+        Scenario("dev/legit/zh-bank-password-advice", "dev", s, "Chinese security notice",
+                 "Bank advising customers to change passwords regularly.",
+                 build("中国工商银行 <service@icbc.com.cn>", "账户安全小贴士",
+                       "建议您定期更换网上银行登录密码，不要使用生日或手机号作为密码。\n")),
+        Scenario("dev/phish/zh-ask-password-a", "dev", p, "Chinese credential theft",
+                 "Fake mailbox upgrade asking the reader to reply with their password.",
+                 build("邮箱管理员 <admin@mail-upgrade-notice.example>", "邮箱升级通知",
+                       "系统将于今晚升级邮箱，为避免数据丢失，请回复您的邮箱账号和登录密码，以便我们为您迁移。\n")),
+        Scenario("dev/phish/zh-ask-code-b", "dev", p, "Chinese account takeover",
+                 "Fake customer service asking the reader to read out an SMS code.",
+                 build("平台客服 <kefu@account-unlock-help.example>", "账户解冻",
+                       "您的账户因异常被冻结。我们已向您的手机发送一条短信，请把短信中的验证码告诉客服，"
+                       "完成身份核验后即可解冻。\n")),
+    ]
+
+
 def _holdout() -> list[Scenario]:
     s, p = "legitimate", "phishing"
     return [
@@ -1501,7 +1538,7 @@ def _holdout_round_seven() -> list[Scenario]:
     ]
 
 
-SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _dev_round_five() + _dev_round_six() + _dev_round_seven() + _holdout() + _holdout_round_two() + _holdout_round_three() + _holdout_round_four() + _holdout_round_five() + _holdout_round_six() + _holdout_round_seven())
+SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _dev_round_five() + _dev_round_six() + _dev_round_seven() + _dev_round_eight() + _holdout() + _holdout_round_two() + _holdout_round_three() + _holdout_round_four() + _holdout_round_five() + _holdout_round_six() + _holdout_round_seven())
 
 
 # Scenario id -> why the current rules miss it. Remove an entry when it is fixed.
@@ -1511,6 +1548,9 @@ KNOWN_GAPS: dict[str, str] = {
         "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
     "dev/phish/bonus-letter-login": "A 'log in to view' request with a link to the sender's own login page reads like "
                                     "a genuine HR portal notice; telling them apart needs sender reputation.",
+    "dev/legit/whatsapp-own-notice": "The chat app's own notice is read as moving the conversation to a chat app.",
+    "dev/phish/zh-ask-password-a": "Asking for a password by reply scores only one medium signal; data-loss "
+                                   "threats (数据丢失) are not recognised.",
     "holdout2/phish/remote-job-cheque": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout2/phish/esign-settlement": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout3/phish/unpaid-toll": "Missed by the round-three rules (holdout3: not used for tuning).",
