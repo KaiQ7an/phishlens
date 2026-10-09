@@ -272,7 +272,104 @@ def _holdout() -> list[Scenario]:
     ]
 
 
-SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _holdout())
+def _dev_round_two() -> list[Scenario]:
+    """Added 2026-10-09. The categories follow the round-one holdout misses, but
+    the text is written fresh, without reusing holdout wording. Legitimate
+    messages here probe likely false alarms from rules for those categories."""
+    s, p = "legitimate", "phishing"
+    return [
+        Scenario("dev/phish/tax-refund-bank-details", "dev", p, "government impersonation",
+                 "Fake tax office offers a refund in exchange for bank details.",
+                 build("Australian Taxation Office <refunds@ato-refund-centre.example>",
+                       "You are eligible for a tax refund",
+                       "Our records show you are owed a refund of $812.40 for the 2025-26 income year.\n"
+                       "To receive it, confirm your bank details through the secure form within 3 days.\n",
+                       html='<p>You are owed a refund of $812.40.</p>'
+                            '<p><a href="https://ato-refund-centre.example/claim">Claim your refund</a></p>')),
+        Scenario("dev/phish/zh-tax-refund", "dev", p, "Chinese government impersonation",
+                 "Fake tax bureau refund asking for a bank card number.",
+                 build("国家税务总局 <tuishui@tax-refund-cn.example>", "个人所得税退税待领取",
+                       "您有一笔个人所得税退税 1,280 元尚未领取。请点击链接填写银行卡号和预留手机号，"
+                       "逾期将视为自动放弃。\nhttps://tax-refund-cn.example/lingqu\n")),
+        Scenario("dev/phish/crypto-guaranteed-returns", "dev", p, "investment scam",
+                 "Promises guaranteed monthly returns on a crypto deposit.",
+                 build("Ethan Brooks <ethan@apex-crypto-capital.example>", "Your spot in our trading group",
+                       "Our AI trading platform delivers guaranteed returns of 30% per month.\n"
+                       "Start with a minimum deposit of 500 USDT and withdraw profits any time.\n",
+                       html='<p>Guaranteed returns of 30% per month.</p>'
+                            '<p><a href="https://apex-crypto-capital.example/join">Open your account</a></p>')),
+        Scenario("dev/phish/zh-investment-group", "dev", p, "Chinese investment scam",
+                 "Invitation to a 'mentor' stock group promising risk-free profits.",
+                 build("王老师 <mentor.wang@stock-vip-club.example>", "邀请您加入VIP投资交流群",
+                       "本群由资深导师带单，稳赚不赔，日收益3%以上。名额有限，"
+                       "添加助理微信后转入保证金即可开通。\n")),
+        Scenario("dev/phish/docm-enable-content", "dev", p, "malware delivery",
+                 "Remittance advice in a macro document that tells the reader to enable content.",
+                 build("Accounts Payable <ap@remit-advice.example>", "Remittance advice 8841",
+                       "Please see the attached remittance advice. If the document appears blank, "
+                       "click Enable Content to view it.\n",
+                       attachments=(("remittance-8841.docm", "application", "vnd.ms-word.document.macroEnabled.12", FAKE),))),
+        Scenario("dev/phish/xlsm-purchase-order", "dev", p, "malware delivery",
+                 "Purchase order in a macro-enabled workbook from an unknown buyer.",
+                 build("Procurement <orders@global-trade-buyers.example>", "New purchase order PO-5530",
+                       "Kindly review the attached purchase order and confirm the quantities and price.\n",
+                       attachments=(("PO-5530.xlsm", "application", "vnd.ms-excel.sheet.macroEnabled.12", FAKE),))),
+        Scenario("dev/phish/facebook-page-violation", "dev", p, "account threat",
+                 "Fake Meta notice says the page will be disabled for copyright infringement unless appealed.",
+                 build("Meta Support <support@page-review-center.example>", "Your page has been scheduled for deletion",
+                       "We received a report of copyright infringement on your Facebook page. "
+                       "If you believe this is a mistake, submit an appeal or the page will be disabled.\n",
+                       html='<p>Copyright infringement reported on your page.</p>'
+                            '<p><a href="https://page-review-center.example/appeal">Submit an appeal</a></p>')),
+        Scenario("dev/phish/instagram-badge-lookalike", "dev", p, "account threat",
+                 "Offers a verified badge through a domain using the Instagram name.",
+                 build("Instagram <badge@instagram-verify-team.example>", "Your account is eligible for a verified badge",
+                       "Your account meets the requirements for a verified badge. "
+                       "Confirm your login details to complete verification.\n",
+                       html='<p><a href="https://instagram-verify-team.example/badge">Get verified</a></p>')),
+        Scenario("dev/legit/ato-return-processed", "dev", s, "government notice",
+                 "Real tax office domain confirming a refund to the nominated account.",
+                 build("Australian Taxation Office <noreply@ato.gov.au>", "Your tax return has been processed",
+                       "Your 2025-26 tax return has been processed. Your refund will be paid to your "
+                       "nominated bank account. Sign in to myGov to view your notice of assessment.\n")),
+        Scenario("dev/legit/payroll-bank-details", "dev", s, "workplace notice",
+                 "Employer reminds staff to keep their own bank details current in the HR system.",
+                 build("Payroll <payroll@monash.edu>", "End-of-year payroll reminder",
+                       "Please check that your bank details and tax file number declaration are up to date "
+                       "in the staff portal before 30 November. Payroll will never ask for them by email.\n")),
+        Scenario("dev/legit/event-qr-check-in", "dev", s, "event",
+                 "Event check-in by scanning a QR code at the venue.",
+                 build("Monash Careers <careers@monash.edu>", "Careers fair: how to check in",
+                       "On the day, scan the QR code at the entrance to check in and collect your name badge.\n")),
+        Scenario("dev/legit/archive-password-separately", "dev", s, "workplace file",
+                 "Encrypted archive whose password is sent through another channel.",
+                 build("Priya Nair <priya.nair@monash.edu>", "Survey data for the group project",
+                       "Hi, the survey data is attached as a zip. I'll text you the password separately.\n",
+                       attachments=(("survey-data.zip", "application", "zip", FAKE),))),
+        Scenario("dev/legit/broker-monthly-statement", "dev", s, "financial statement",
+                 "Real brokerage monthly statement mentioning returns and deposits.",
+                 build("CommSec <statements@commsec.com.au>", "Your September statement is ready",
+                       "Your monthly statement is ready. It shows your portfolio returns, deposits and "
+                       "withdrawals for September. Past performance is not a reliable indicator of future returns.\n")),
+        Scenario("dev/legit/youtube-copyright-claim", "dev", s, "platform notice",
+                 "Genuine platform notice of a copyright claim with an appeal option.",
+                 build("YouTube <no-reply@youtube.com>", "Copyright claim on your video",
+                       "A copyright claim was made on your video by the owner of a song it contains. "
+                       "Your video is still available. You can dispute the claim in YouTube Studio.\n")),
+        Scenario("dev/legit/instagram-login-alert", "dev", s, "security notice",
+                 "Genuine sign-in alert from the platform's own mail domain.",
+                 build("Instagram <security@mail.instagram.com>", "New login to your account",
+                       "We noticed a new login from Chrome on Mac near Melbourne. If this was you, "
+                       "you can ignore this message.\n")),
+        Scenario("dev/legit/zh-fund-statement", "dev", s, "Chinese financial statement",
+                 "Fund company statement listing returns.",
+                 build("招商银行 <statement@cmbchina.com>", "您的基金对账单（2026年9月）",
+                       "尊敬的客户，您9月的基金对账单已生成，本月收益与持仓明细请登录手机银行查看。"
+                       "基金有风险，投资需谨慎。\n")),
+    ]
+
+
+SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _holdout())
 
 
 # Scenario id -> why the current rules miss it. Remove an entry when it is fixed.
@@ -280,6 +377,13 @@ KNOWN_GAPS: dict[str, str] = {
     "dev/legit/newsletter-tracked-url-text":
         "Click tracking whose visible text is the final URL reads as an anchor mismatch; only Constant "
         "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
+    "dev/phish/tax-refund-bank-details": "Tax offices are not treated as authorities, so a refund lure from a non-government domain is not escalated.",
+    "dev/phish/crypto-guaranteed-returns": "No signal for promised investment returns; USDT is not a payment phrase.",
+    "dev/phish/zh-investment-group": "No signal for promised investment returns (稳赚不赔, 带单).",
+    "dev/phish/docm-enable-content": "Instructions to enable macros are not recognised; a macro document alone is medium.",
+    "dev/phish/xlsm-purchase-order": "A macro workbook from an unknown sender scores only medium.",
+    "dev/phish/facebook-page-violation": "No signal for account takedown threats; Meta brands are not protected.",
+    "dev/phish/instagram-badge-lookalike": "Instagram is not a protected brand, so the lookalike domain is not recognised.",
     "holdout/phish/tax-refund": "Missed by the baseline rules (holdout: not used for tuning).",
     "holdout/phish/crypto-investment": "Missed by the baseline rules (holdout: not used for tuning).",
     "holdout/phish/macro-invoice": "Missed by the baseline rules (holdout: not used for tuning).",
