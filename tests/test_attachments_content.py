@@ -57,3 +57,8 @@ def test_signals_report_matched_phrases():
 
 def test_no_signals_in_ordinary_text():
     assert find_signals("The workshop is on Thursday. See you there!") == []
+
+
+@pytest.mark.parametrize("text", ["请先转发给同学。", "这是我的零用钱。"])
+def test_everyday_chinese_is_not_a_payment_request(text):
+    assert "content.payment" not in {s.code for s, _ in find_signals(text)}

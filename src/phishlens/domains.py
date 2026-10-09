@@ -33,6 +33,7 @@ PROTECTED_BRANDS: dict[str, tuple[str, ...]] = {
     "mygov": ("my.gov.au",),
     "facebook": ("facebook.com", "facebookmail.com", "meta.com", "fb.com"),
     "instagram": ("instagram.com",),
+    "docusign": ("docusign.com", "docusign.net"),
 }
 # Product names that stand for a protected brand in display names and domains.
 BRAND_ALIASES: dict[str, tuple[str, ...]] = {

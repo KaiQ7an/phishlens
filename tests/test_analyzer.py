@@ -156,3 +156,32 @@ def test_account_takedown_threats_are_flagged():
     for body in ("Your page will be disabled unless you submit an appeal.", "您的账号将被封禁。"):
         codes = {f.code for f in analyze(_email("Support", "mail-host.example", body)).findings}
         assert "content.account_threat" in codes, body
+
+
+@pytest.mark.parametrize("code, body", [
+    ("content.job_offer", "Work from home, no experience needed."),
+    ("content.job_offer", "在家兼职，日结佣金。"),
+    ("content.new_contact", "I lost my phone so this is my new number."),
+    ("content.new_contact", "我手机坏了，换号了。"),
+    ("content.favour", "Are you free? I need a quick favour."),
+    ("content.favour", "帮个忙，我在开会。"),
+    ("content.payment", "Can you transfer $500 tonight?"),
+    ("content.payment", "需要先垫付本金。"),
+])
+def test_round_three_signals(code, body):
+    assert code in {f.code for f in analyze(_email("Sender", "mail-host.example", body)).findings}
+
+
+def test_relative_asking_for_money_from_new_contact_is_suspicious():
+    report = analyze(_email("Jack", "mail-host.example",
+                            "Hi Mum, I lost my phone. Can you transfer $1,800 to my flatmate?"))
+    assert report.level != "low"
+    report = analyze(_email("Jack", "mail-host.example", "Hi Mum, I lost my phone but the number is the same."))
+    assert report.level == "low"
+
+
+def test_docusign_is_protected():
+    codes = {f.code for f in analyze(_email("DocuSign", "esign-notify.example", "Please sign.")).findings}
+    assert "header.display_name_brand" in codes
+    codes = {f.code for f in analyze(_email("Agent via DocuSign", "docusign.net", "Please sign.")).findings}
+    assert "header.display_name_brand" not in codes

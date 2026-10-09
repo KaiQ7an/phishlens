@@ -26,13 +26,30 @@ SIGNALS: tuple[Signal, ...] = (
     Signal("content.credentials", "medium", "Asks for a password, code or identity details", (
         "verify your account", "confirm your password", "reset your password", "enter your password",
         "update your payment", "login to verify", "verification code", "one-time code",
-        "密码", "验证码", "登录验证", "账户验证", "身份证号", "银行卡号",
+        "bank account number", "copy of your id", "copy of your passport",
+        "密码", "验证码", "登录验证", "账户验证", "身份证号", "银行卡号", "身份证照片",
     )),
     Signal("content.payment", "medium", "Asks for money or an unusual payment method", (
         "gift card", "wire transfer", "bank transfer", "bitcoin", "western union", "processing fee",
         "redelivery fee", "customs fee", "clearance fee", "bank details", "new account details",
-        "usdt", "crypto wallet",
+        "usdt", "crypto wallet", "can you transfer", "could you transfer", "please transfer",
         "转账", "汇款", "保证金", "手续费", "安全账户", "比特币", "清关费", "西联", "收款账户", "银行账户变更",
+        "垫付", "帮我转", "转给我", "借钱", "需要用钱", "急需用钱",
+    )),
+    Signal("content.job_offer", "medium", "Offers unsolicited work, commission or easy income", (
+        "work from home", "no experience needed", "no experience required", "found your resume",
+        "found your cv", "reship",
+        "在家兼职", "在家即可", "兼职", "佣金", "返现", "刷单", "日结",
+    )),
+    Signal("content.new_contact", "medium", "Says they have a new phone, number or account", (
+        "lost my phone", "my phone broke", "my phone is broken", "my new number", "this is my new number",
+        "from a new account", "from a new email",
+        "手机丢了", "手机坏了", "换号了", "新号码", "新微信", "这个邮箱联系",
+    )),
+    Signal("content.favour", "medium", "Opens with a vague favour or says they cannot take calls", (
+        "quick favour", "quick favor", "are you free", "are you available", "i'm in a meeting",
+        "can't take calls", "cannot take calls", "send me the codes", "send the codes",
+        "帮个忙", "在开会", "不方便接电话",
     )),
     Signal("content.investment", "medium", "Promises guaranteed or unusually high investment returns", (
         "guaranteed return", "guaranteed profit", "guaranteed income", "double your money",

@@ -541,16 +541,7 @@ KNOWN_GAPS: dict[str, str] = {
     "dev/legit/newsletter-tracked-url-text":
         "Click tracking whose visible text is the final URL reads as an anchor mismatch; only Constant "
         "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
-    "dev/phish/reshipping-job": "No signal for unsolicited jobs that ask for ID or bank details.",
-    "dev/phish/zh-review-commission": "No signal for commission tasks that need money advanced (垫付).",
-    "dev/phish/family-lost-phone": "No signal for a relative's 'new account' asking for a transfer.",
-    "dev/phish/zh-relative-borrow": "No signal for a relative's 'new contact' asking to borrow money.",
-    "dev/phish/docusign-lookalike": "DocuSign is not a protected brand.",
-    "dev/phish/manager-gift-card-favour": "A gift-card favour scores only as a payment phrase.",
     "holdout/phish/crypto-investment": "Missed by the baseline rules (holdout: not used for tuning).",
     "holdout2/phish/remote-job-cheque": "Missed by the round-two rules (holdout2: not used for tuning).",
-    "holdout2/phish/zh-brushing-task": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout2/phish/esign-settlement": "Missed by the round-two rules (holdout2: not used for tuning).",
-    "holdout2/phish/zh-child-new-number": "Missed by the round-two rules (holdout2: not used for tuning).",
-    "holdout2/phish/lecturer-gift-card": "Missed by the round-two rules (holdout2: not used for tuning).",
 }
