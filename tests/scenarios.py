@@ -1358,8 +1358,6 @@ KNOWN_GAPS: dict[str, str] = {
         "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
     "dev/phish/bonus-letter-login": "A 'log in to view' request with a link to the sender's own login page reads like "
                                     "a genuine HR portal notice; telling them apart needs sender reputation.",
-    "dev/legit/wallet-never-request": "Saying support never requests a recovery phrase is read as a request.",
-    "dev/legit/zh-exchange-never-ask": "Saying staff never ask for seed words (绝不会索要) is read as a request.",
     "holdout2/phish/remote-job-cheque": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout2/phish/esign-settlement": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout3/phish/unpaid-toll": "Missed by the round-three rules (holdout3: not used for tuning).",
@@ -1380,6 +1378,4 @@ KNOWN_GAPS: dict[str, str] = {
     "holdout6/phish/new-enrolment-fee": "Missed by the round-six rules (holdout6: not used for tuning).",
     "holdout6/phish/new-zh-service-close": "Missed by the round-six rules (holdout6: not used for tuning).",
     "holdout6/phish/new-crypto-recovery": "Missed by the round-six rules (holdout6: not used for tuning).",
-    "holdout6/legit/exchange-security-tip": "False alarm by the round-six rules: a warning that the exchange never asks "
-                                            "for a seed phrase is read as a request for one.",
 }

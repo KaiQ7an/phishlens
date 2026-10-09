@@ -9,7 +9,7 @@ from urllib.parse import urlsplit
 
 from . import attachments as attachment_rules
 from .auth import AuthVerdicts, parse_authentication_results
-from .content import find_callback_number, find_signals
+from .content import asking_text, find_callback_number, find_signals
 from .domains import (PROTECTED_BRANDS, PROTECTED_DOMAINS, brand_terms, find_lookalike, is_government,
                       is_ip, is_mixed_script, same_site, to_unicode)
 from .intel import OfflineIntel, ThreatIntel
@@ -261,7 +261,8 @@ def _content_findings(email: ParsedEmail, visible_html_text: str) -> list[Findin
                                         f"{evidence}; sender {email.sender.domain}"))
                 continue
         findings.append(Finding(signal.code, signal.severity, signal.title, evidence))
-    if _GIFT_CARD_RE.search(text.lower()) and _GIFT_CARD_CODES_RE.search(text.lower()):
+    asking = asking_text(text)
+    if _GIFT_CARD_RE.search(asking) and _GIFT_CARD_CODES_RE.search(asking):
         findings.append(Finding("content.gift_card_codes", "high",
                                 "Asks for gift card numbers or codes, which work like cash once shared",
                                 "gift card codes requested"))

@@ -67,3 +67,25 @@ def test_everyday_chinese_is_not_a_payment_request(text):
 def test_phrase_and_pattern_matches_are_reported_once():
     (signal, matched), = find_signals("请在24小时内处理")
     assert signal.code == "content.urgency" and matched == ["24小时内"]
+
+
+@pytest.mark.parametrize("text", [
+    "We will never ask for your seed phrase or password.",
+    "Support never requests your recovery phrase.",
+    "币安员工绝不会向您索要助记词。",
+    "We will never ask you to pay with gift cards.",
+])
+def test_safety_advice_is_not_a_request(text):
+    codes = {s.code for s, _ in find_signals(text)}
+    assert not codes & {"content.wallet_secret", "content.credentials", "content.payment"}
+
+
+def test_reassurance_does_not_hide_a_request_in_another_sentence():
+    codes = {s.code for s, _ in find_signals(
+        "We will never ask for your password. Enter your recovery phrase to finish the check.")}
+    assert "content.wallet_secret" in codes
+
+
+def test_negation_does_not_apply_to_pressure_or_secrecy():
+    codes = {s.code for s, _ in find_signals("Never share this with anyone. Do not tell your family.")}
+    assert "content.secrecy" in codes

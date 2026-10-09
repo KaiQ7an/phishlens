@@ -154,13 +154,33 @@ _CHARGE_PHRASES = ("charged", "renewed", "renewal", "to cancel", "refund", "lega
                    "续费", "扣款", "取消", "退款", "起诉", "欠款", "诉讼")
 
 
+# Request-type signals ignore sentences that say what will never be asked
+# ("We will never ask for your seed phrase"), which is safety advice, not a
+# request. Matching is per sentence, so a reassurance cannot hide a request
+# made in another sentence.
+_NEGATABLE = frozenset({"content.credentials", "content.wallet_secret", "content.payment",
+                        "content.remote_access", "content.off_channel", "content.qr_code"})
+_NEGATION_CUES = ("never ask", "never request", "will not ask", "won't ask", "never share", "don't share",
+                  "do not share", "never give out",
+                  "绝不会", "不会向您索要", "不会要求", "不会索要", "请勿透露", "切勿透露", "不要透露")
+_SENTENCE_RE = re.compile(r"(?<=[.!?])\s+|[。！？；;\n]+")
+
+
+def asking_text(text: str) -> str:
+    """Lower-cased text without sentences that say something will never be asked."""
+    sentences = _SENTENCE_RE.split(text.lower())
+    return "\n".join(s for s in sentences if s and not any(cue in s for cue in _NEGATION_CUES))
+
+
 def find_signals(text: str) -> list[tuple[Signal, list[str]]]:
     lowered = text.lower()
+    asking = asking_text(text)
     hits: list[tuple[Signal, list[str]]] = []
     for signal in SIGNALS:
-        matched = [phrase for phrase in signal.phrases if phrase.lower() in lowered]
+        source = asking if signal.code in _NEGATABLE else lowered
+        matched = [phrase for phrase in signal.phrases if phrase.lower() in source]
         for pattern in signal.patterns:
-            matched += [m.group(0) for m in re.finditer(pattern, lowered)]
+            matched += [m.group(0) for m in re.finditer(pattern, source)]
         matched = list(dict.fromkeys(matched))  # a phrase and a pattern can find the same words
         if matched:
             hits.append((signal, matched))
