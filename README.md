@@ -132,7 +132,7 @@ Findings
   [HIGH   +30] Tells you to keep it secret or cut off contact
                evidence: '保密', '切勿告知'
   [MEDIUM +15] Asks for money or an unusual payment method
-               evidence: '保证金', '安全账户'
+               evidence: '保证金', '安全账户', '缴纳'
   [LOW    + 5] Creates time pressure
                evidence: '紧急', '24小时内'
 ```

@@ -62,3 +62,8 @@ def test_no_signals_in_ordinary_text():
 @pytest.mark.parametrize("text", ["请先转发给同学。", "这是我的零用钱。"])
 def test_everyday_chinese_is_not_a_payment_request(text):
     assert "content.payment" not in {s.code for s, _ in find_signals(text)}
+
+
+def test_phrase_and_pattern_matches_are_reported_once():
+    (signal, matched), = find_signals("请在24小时内处理")
+    assert signal.code == "content.urgency" and matched == ["24小时内"]

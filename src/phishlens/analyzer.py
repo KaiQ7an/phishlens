@@ -9,7 +9,7 @@ from urllib.parse import urlsplit
 
 from . import attachments as attachment_rules
 from .auth import AuthVerdicts, parse_authentication_results
-from .content import find_signals
+from .content import find_callback_number, find_signals
 from .domains import (PROTECTED_BRANDS, PROTECTED_DOMAINS, brand_terms, find_lookalike, is_government,
                       is_ip, is_mixed_script, same_site, to_unicode)
 from .intel import OfflineIntel, ThreatIntel
@@ -234,20 +234,39 @@ def _link_findings(links: list[Link], provider: str | None = None,
     return findings
 
 
+_AUTHORITY_ASKS = {"content.payment", "content.credentials", "content.secrecy", "content.wallet_secret"}
+_GIFT_CARD_CODES_RE = re.compile(r"\b(?:card numbers|card codes|the codes|codes? on the back)\b|卡密")
+
+
 def _content_findings(email: ParsedEmail, visible_html_text: str) -> list[Finding]:
     # The sender's display name is read as part of the message: impersonation
     # often lives there ("公安局", "Embassy") rather than in the body.
     display_name = email.sender.display_name if email.sender else ""
     text = strip_urls("\n".join((display_name, email.subject, email.text, visible_html_text)))
     findings = []
-    for signal, matched in find_signals(text):
+    hits = find_signals(text)
+    codes = {signal.code for signal, _ in hits}
+    identity = "\n".join((display_name, email.subject)).lower()
+    for signal, matched in hits:
         evidence = ", ".join(f"'{m}'" for m in matched[:5])
         if signal.code == "content.authority" and email.sender and not is_government(email.sender.domain):
-            findings.append(Finding("content.authority_non_gov", "high",
-                                    "Claims to be police, a tax office or government but was not sent from a government domain",
-                                    f"{evidence}; sender {email.sender.domain}"))
-        else:
-            findings.append(Finding(signal.code, signal.severity, signal.title, evidence))
+            # Mentioning the police in passing is ordinary ("contact Victoria
+            # Police"). Claiming to be an authority in the sender name or
+            # subject, or pairing the claim with a request, is the scam shape.
+            if any(m.lower() in identity for m in matched) or codes & _AUTHORITY_ASKS:
+                findings.append(Finding("content.authority_non_gov", "high",
+                                        "Claims to be police, a tax office or government but was not sent from a government domain",
+                                        f"{evidence}; sender {email.sender.domain}"))
+                continue
+        findings.append(Finding(signal.code, signal.severity, signal.title, evidence))
+    if "content.payment" in codes and _GIFT_CARD_CODES_RE.search(text.lower()) and "gift card" in text.lower():
+        findings.append(Finding("content.gift_card_codes", "high",
+                                "Asks for gift card numbers or codes, which work like cash once shared",
+                                "gift card codes requested"))
+    if number := find_callback_number(text):
+        findings.append(Finding("content.callback", "high",
+                                "Reports a charge and gives a phone number to dispute it, a common way to move a scam to a call",
+                                number))
     return findings
 
 

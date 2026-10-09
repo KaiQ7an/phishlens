@@ -6,6 +6,7 @@ reader can see exactly why it fired.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 
@@ -15,6 +16,7 @@ class Signal:
     severity: str
     title: str
     phrases: tuple[str, ...]
+    patterns: tuple[str, ...] = ()  # regular expressions, for phrases with numbers
 
 
 SIGNALS: tuple[Signal, ...] = (
@@ -22,7 +24,7 @@ SIGNALS: tuple[Signal, ...] = (
         "urgent", "immediately", "within 24 hours", "within 48 hours", "final notice", "act now",
         "account will be suspended", "account has been suspended", "expires today",
         "立即", "立刻", "马上", "紧急", "24小时内", "24 小时内", "逾期", "冻结", "最后通知",
-    )),
+    ), (r"\bwithin \d{1,2} (?:hours|days)\b", r"\d{1,2}\s*(?:小时|天|日)内", r"[一二两三四五六七]\s*(?:天|日)内")),
     Signal("content.credentials", "medium", "Asks for a password, code or identity details", (
         "verify your account", "confirm your password", "reset your password", "enter your password",
         "update your payment", "login to verify", "verification code", "one-time code",
@@ -35,6 +37,14 @@ SIGNALS: tuple[Signal, ...] = (
         "usdt", "crypto wallet", "can you transfer", "could you transfer", "please transfer",
         "转账", "汇款", "保证金", "手续费", "安全账户", "比特币", "清关费", "西联", "收款账户", "银行账户变更",
         "垫付", "帮我转", "转给我", "借钱", "需要用钱", "急需用钱",
+        "late fee", "penalty", "unpaid", "postage fee", "缴纳", "罚款", "滞纳金", "邮费",
+    )),
+    Signal("content.wallet_secret", "high", "Asks for a wallet recovery phrase or private key, which no genuine service requests", (
+        "seed phrase", "recovery phrase", "secret phrase", "private key", "助记词", "私钥",
+    )),
+    Signal("content.windfall", "medium", "Announces a prize, reward or unexpected payout", (
+        "you have won", "you've won", "claim your prize", "claim your reward", "airdrop",
+        "中奖", "抽中", "领奖", "幸运大奖", "免费领取",
     )),
     Signal("content.job_offer", "medium", "Offers unsolicited work, commission or easy income", (
         "work from home", "no experience needed", "no experience required", "found your resume",
@@ -82,11 +92,33 @@ SIGNALS: tuple[Signal, ...] = (
 )
 
 
+# A phone number introduced by "call"/"致电" and at least eight digits long,
+# so dates, amounts and short service numbers are not mistaken for one.
+_CALL_NUMBER_RE = re.compile(r"(?:\bcall\b|\bphone\b|\bdial\b|致电|拨打)\D{0,25}?(\+?\d[\d\s().-]{6,}\d)")
+_CHARGE_PHRASES = ("charged", "renewed", "renewal", "to cancel", "refund", "续费", "扣款", "取消", "退款")
+
+
 def find_signals(text: str) -> list[tuple[Signal, list[str]]]:
     lowered = text.lower()
     hits: list[tuple[Signal, list[str]]] = []
     for signal in SIGNALS:
         matched = [phrase for phrase in signal.phrases if phrase.lower() in lowered]
+        for pattern in signal.patterns:
+            matched += [m.group(0) for m in re.finditer(pattern, lowered)]
+        matched = list(dict.fromkeys(matched))  # a phrase and a pattern can find the same words
         if matched:
             hits.append((signal, matched))
     return hits
+
+
+def find_callback_number(text: str) -> str | None:
+    """Return a phone number offered to dispute a charge, the shape of callback
+    phishing, which moves the scam to a phone call that no link check sees."""
+    lowered = text.lower()
+    if not any(phrase in lowered for phrase in _CHARGE_PHRASES):
+        return None
+    for match in _CALL_NUMBER_RE.finditer(lowered):
+        number = match.group(1)
+        if sum(ch.isdigit() for ch in number) >= 8:
+            return number.strip()
+    return None

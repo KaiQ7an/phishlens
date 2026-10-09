@@ -732,25 +732,14 @@ KNOWN_GAPS: dict[str, str] = {
     "dev/legit/newsletter-tracked-url-text":
         "Click tracking whose visible text is the final URL reads as an anchor mismatch; only Constant "
         "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
-    "dev/phish/callback-tech-support": "No signal for callback phishing: a charge plus a phone number to cancel.",
-    "dev/phish/zh-callback-renewal": "No signal for callback phishing (致电取消).",
-    "dev/phish/parking-infringement": "Fines, penalties and late fees are not payment requests.",
-    "dev/phish/zh-prize-postage": "No signal for prizes that need a fee (中奖 + 邮费).",
-    "dev/phish/seed-phrase-upgrade": "Requests for a wallet seed or recovery phrase are not recognised.",
-    "dev/phish/bonus-letter-login": "'Log in to view' requests are not treated as credential requests.",
-    "dev/phish/charity-gift-cards": "Asking for gift card numbers scores only as a payment phrase.",
-    "dev/legit/uni-safety-police": "Any police mention from a non-government sender is escalated to high, "
-                                   "even advice to contact the police.",
+    "dev/phish/bonus-letter-login": "A 'log in to view' request with a link to the sender's own login page reads like "
+                                    "a genuine HR portal notice; telling them apart needs sender reputation.",
     "holdout/phish/crypto-investment": "Missed by the baseline rules (holdout: not used for tuning).",
     "holdout2/phish/remote-job-cheque": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout2/phish/esign-settlement": "Missed by the round-two rules (holdout2: not used for tuning).",
-    "holdout3/phish/callback-antivirus": "Missed by the round-three rules (holdout3: not used for tuning).",
     "holdout3/phish/unpaid-toll": "Missed by the round-three rules (holdout3: not used for tuning).",
     "holdout3/phish/zh-recall-compensation": "Missed by the round-three rules (holdout3: not used for tuning).",
-    "holdout3/phish/zh-lottery-tax": "Missed by the round-three rules (holdout3: not used for tuning).",
-    "holdout3/phish/wallet-airdrop": "Missed by the round-three rules (holdout3: not used for tuning).",
     "holdout3/phish/salary-adjustment": "Missed by the round-three rules (holdout3: not used for tuning).",
     "holdout3/phish/disaster-donation": "Missed by the round-three rules (holdout3: not used for tuning).",
-    "holdout3/phish/zh-visa-cancellation": "Missed by the round-three rules (holdout3: not used for tuning).",
     "holdout3/phish/onedrive-invoice": "Missed by the round-three rules (holdout3: not used for tuning).",
 }

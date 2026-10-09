@@ -185,3 +185,48 @@ def test_docusign_is_protected():
     assert "header.display_name_brand" in codes
     codes = {f.code for f in analyze(_email("Agent via DocuSign", "docusign.net", "Please sign.")).findings}
     assert "header.display_name_brand" not in codes
+
+
+def test_police_mentioned_in_passing_is_not_an_impersonation():
+    body = "If you see suspicious behaviour, contact Victoria Police on 000."
+    codes = {f.code for f in analyze(_email("Campus Security", "uni.example.edu", body)).findings}
+    assert "content.authority_non_gov" not in codes and "content.authority" in codes
+    codes = {f.code for f in analyze(_email("Campus Security", "uni.example.edu",
+                                            "Police: pay the fine by bank transfer today.")).findings}
+    assert "content.authority_non_gov" in codes
+
+
+def test_wallet_recovery_phrase_requests_are_high_risk():
+    report = analyze(_email("Wallet", "mail-host.example", "Confirm your seed phrase to keep access."))
+    assert ("content.wallet_secret", "high") in {(f.code, f.severity) for f in report.findings}
+
+
+def test_gift_card_codes_are_high_risk_but_receipts_are_not():
+    codes = {f.code for f in analyze(_email("Appeal", "mail-host.example",
+                                            "Buy gift cards and reply with the card numbers.")).findings}
+    assert "content.gift_card_codes" in codes
+    codes = {f.code for f in analyze(_email("Store", "mail-host.example",
+                                            "Gift card $50. The gift card code was sent to the recipient.")).findings}
+    assert "content.gift_card_codes" not in codes
+
+
+@pytest.mark.parametrize("body, flagged", [
+    ("$289.99 has been charged. To cancel, call 1-800-555-0199.", True),
+    ("会员将自动续费899元，如需取消请致电 400-800-1234。", True),
+    ("If you didn't make this transaction, call us on 13 22 21.", False),  # short service number
+    ("Your renewal is due 2026-11-01. Call us with questions.", False),    # a date is not a number to call
+    ("Call 1-800-555-0199 to book a table.", False),                       # no charge to dispute
+])
+def test_callback_numbers(body, flagged):
+    codes = {f.code for f in analyze(_email("Billing", "mail-host.example", body)).findings}
+    assert ("content.callback" in codes) == flagged
+
+
+@pytest.mark.parametrize("body", ["Pay within 7 days.", "请在3天内完成。", "三日内缴纳。"])
+def test_deadlines_create_time_pressure(body):
+    assert "content.urgency" in {f.code for f in analyze(_email("Notice", "mail-host.example", body)).findings}
+
+
+def test_prizes_are_windfalls():
+    for body in ("Congratulations, you have won!", "恭喜您抽中大奖。"):
+        assert "content.windfall" in {f.code for f in analyze(_email("Promo", "mail-host.example", body)).findings}
