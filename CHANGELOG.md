@@ -88,17 +88,21 @@
 - Ignore safety advice that says what will never be asked ("we will never ask
   for your seed phrase", 绝不会索要) for request-type signals, per sentence, so
   a reassurance cannot hide a request elsewhere in the message.
+- Require an actual request for Chinese password and code signals (回复…密码,
+  验证码告诉…) rather than any mention, so advice such as 修改密码 is not
+  flagged. Mentions of a chat app from that app's own domain are not treated
+  as moving the conversation elsewhere.
 
 ### Validation
 
-- Add 224 labelled synthetic scenarios: a dev split for tuning and six
+- Add 260 labelled synthetic scenarios: a dev split for tuning and seven
   holdout splits, each written after a round of rule changes and run once.
   `scripts/evaluate.py` reports precision and recall per split and, for newer
   holdouts, detection of reworded versus new categories. First-run recall on
-  unseen holdouts ranged from 8% to 42% without an upward trend, with one
-  false alarm across 52 legitimate holdout messages; the README explains what
+  unseen holdouts ranged from 8% to 50% without an upward trend, with three
+  false alarms across 76 legitimate holdout messages; the README explains what
   the rounds show. Remaining misses run as strict expected failures.
-- Expand the regression suite to 698 synthetic tests.
+- Expand the regression suite to 739 synthetic tests.
 - Add CI for Linux Python 3.11–3.14 and macOS/Windows Python 3.14.
 - Build and smoke-test wheel/source archives using isolated installations
   outside the checkout without network access during installation.

@@ -232,7 +232,7 @@ Its support community also describes [intermediate click-tracking links](https:/
 
 ## Evaluation
 
-`scripts/evaluate.py` scores 224 labelled synthetic scenarios in
+`scripts/evaluate.py` scores 260 labelled synthetic scenarios in
 `tests/scenarios.py` (`--markdown` or `--json` for other formats). Each
 scenario's label was written before the rules were run against it. The
 **dev** split is used to find and fix rule gaps. Each **holdout** split was
@@ -248,9 +248,12 @@ scenario counts as detected when it scores suspicious or high.
 | holdout3 | round 3 | 1 / 10 | 6 / 10 | 0 / 8 |
 | holdout4 | round 4 | 3 / 10 | 8 / 10 | 0 / 8 |
 | holdout5 | round 5 | 5 / 12 | 11 / 12 | 0 / 10 |
-| holdout6 | round 6 | 1 / 12 | (current unseen set) | 1 / 14 |
+| holdout6 | round 6 | 1 / 12 | 1 / 12 | 1 / 14 |
+| holdout7 | the negation change | 3 / 6 | (current unseen set) | 2 / 24 |
 
-The dev split has 114 scenarios with 98% recall and one false alarm.
+The dev split has 120 scenarios with 98% recall and one false alarm.
+Holdout7 is mostly ordinary inbox mail (marketing and app notices) to measure
+false alarms.
 Holdouts 4–6 separate reworded versions of categories earlier rounds covered
 (`variant-`) from categories no round targeted (`new-`):
 
@@ -259,11 +262,12 @@ Holdouts 4–6 separate reworded versions of categories earlier rounds covered
 | holdout4 (phrase rules) | 1 / 6 | 2 / 4 |
 | holdout5 (intent rules) | 4 / 7 | 1 / 5 |
 | holdout6 (intent rules) | 1 / 6 | 0 / 6 |
+| holdout7 (intent rules) | 2 / 2 | 1 / 4 |
 
-What six rounds show:
+What the rounds show:
 
-- First-run recall on unseen scenarios was 8–42% (17%, 38%, 10%, 30%, 42%,
-  8%) and did not trend upward. The rules catch what they were written from;
+- First-run recall on unseen scenarios was 8–50% (17%, 38%, 10%, 30%, 42%,
+  8%, 50%) and did not trend upward; holdout7 had only six phishing messages. The rules catch what they were written from;
   the "now" column shows the effect of tuning, not generalisation.
 - Rounds one to four added phrases per category. Rounds five and six targeted
   intents (a payment verb with an amount, moving to a chat app, remote access,
@@ -271,11 +275,14 @@ What six rounds show:
   Holdout5 suggested this helped with reworded scams (4 of 7), but holdout6
   did not repeat it (1 of 6). With six or seven scenarios per cell, neither
   result is reliable.
-- Precision held better than recall: one first-run false alarm across 52
+- Precision held better than recall: three first-run false alarms across 76
   legitimate holdout messages, many written as deliberate probes (real fines,
   bonds, refunds, remote IT support, chat-group invitations, police advice,
-  job alerts). That false alarm, an exchange's reminder that it never asks for
-  a seed phrase, led to sentence-level handling of "we will never ask for…".
+  job alerts, marketing). An exchange's reminder that it never asks for a seed
+  phrase led to sentence-level handling of "we will never ask for…"; a chat
+  app's own login notice led to Chinese password signals requiring an actual
+  request and to trusting chat apps' own domains. A loyalty prize with a claim
+  deadline is still flagged: marketing and prize lures use the same words.
 - The same person wrote the rules and the holdouts. Knowing the rules can
   bias holdout wording in either direction, which independent writers would
   avoid.
@@ -336,7 +343,7 @@ python -m pip install '.[dev]'
 python -m pytest -q
 ```
 
-The current suite has 698 tests (including 22 expected failures for known
+The current suite has 739 tests (including 26 expected failures for known
 gaps) for message parsing, input limits, malformed MIME,
 text decoding, authentication-header ambiguity, domains, links, inline/container
 attachments, language signals, scoring, mailing-route boundaries, safe report
