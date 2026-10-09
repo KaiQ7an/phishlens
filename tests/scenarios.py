@@ -525,6 +525,40 @@ def _dev_round_six() -> list[Scenario]:
     ]
 
 
+def _dev_round_seven() -> list[Scenario]:
+    """Added 2026-10-09 after holdout6's false alarm. Security advice that says
+    what a service will never ask for, in two wordings and Chinese, plus a
+    phishing message that uses the same reassurance before asking anyway."""
+    s, p = "legitimate", "phishing"
+    return [
+        Scenario("dev/legit/wallet-never-request", "dev", s, "security notice",
+                 "Wallet provider reminds users that support never requests recovery phrases.",
+                 build("MetaMask <support@metamask.io>", "Stay safe from support scams",
+                       "Reminder: our support team will never request your recovery phrase or private key. "
+                       "Anyone who asks for it is trying to steal your funds.\n")),
+        Scenario("dev/legit/zh-exchange-never-ask", "dev", s, "Chinese security notice",
+                 "Exchange reminds users in Chinese that staff never ask for seed words.",
+                 build("币安 <do-not-reply@binance.com>", "安全提醒",
+                       "币安员工绝不会向您索要助记词、私钥或验证码，请勿向任何人透露。\n")),
+        Scenario("dev/legit/bank-never-gift-cards", "dev", s, "security notice",
+                 "Bank explains it never asks customers to pay with gift cards or move money.",
+                 build("Westpac <notifications@westpac.com.au>", "How to spot a scam",
+                       "We will never ask you to pay with gift cards, buy bitcoin or transfer money to a "
+                       "'safe account'. If someone does, hang up.\n")),
+        Scenario("dev/legit/it-never-remote", "dev", s, "IT notice",
+                 "IT warns that it never asks callers to install remote access tools.",
+                 build("Monash eSolutions <servicedesk@monash.edu>", "Beware of fake IT calls",
+                       "The service desk will never ask you to install AnyDesk or TeamViewer or to share your "
+                       "screen with an unexpected caller.\n")),
+        Scenario("dev/phish/reassure-then-ask", "dev", p, "crypto theft",
+                 "Reassures that it never asks for passwords, then asks for the recovery phrase.",
+                 build("Wallet Support <help@wallet-support-desk.example>", "Complete your security check",
+                       "We will never ask for your password by email. To finish the security check, enter "
+                       "your recovery phrase on the verification page.\n",
+                       html='<p><a href="https://wallet-support-desk.example/check">Verify wallet</a></p>')),
+    ]
+
+
 def _holdout() -> list[Scenario]:
     s, p = "legitimate", "phishing"
     return [
@@ -1314,7 +1348,7 @@ def _holdout_round_six() -> list[Scenario]:
     ]
 
 
-SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _dev_round_five() + _dev_round_six() + _holdout() + _holdout_round_two() + _holdout_round_three() + _holdout_round_four() + _holdout_round_five() + _holdout_round_six())
+SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _dev_round_five() + _dev_round_six() + _dev_round_seven() + _holdout() + _holdout_round_two() + _holdout_round_three() + _holdout_round_four() + _holdout_round_five() + _holdout_round_six())
 
 
 # Scenario id -> why the current rules miss it. Remove an entry when it is fixed.
@@ -1324,6 +1358,8 @@ KNOWN_GAPS: dict[str, str] = {
         "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
     "dev/phish/bonus-letter-login": "A 'log in to view' request with a link to the sender's own login page reads like "
                                     "a genuine HR portal notice; telling them apart needs sender reputation.",
+    "dev/legit/wallet-never-request": "Saying support never requests a recovery phrase is read as a request.",
+    "dev/legit/zh-exchange-never-ask": "Saying staff never ask for seed words (绝不会索要) is read as a request.",
     "holdout2/phish/remote-job-cheque": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout2/phish/esign-settlement": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout3/phish/unpaid-toll": "Missed by the round-three rules (holdout3: not used for tuning).",
