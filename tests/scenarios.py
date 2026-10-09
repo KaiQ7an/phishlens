@@ -297,6 +297,120 @@ def _dev_round_four() -> list[Scenario]:
     ]
 
 
+def _dev_round_five() -> list[Scenario]:
+    """Added 2026-10-09. Categories follow the holdout4 misses; each phishing
+    category has two independently worded versions (-a/-b) so rules must
+    capture the intent rather than one phrasing. Legitimate messages use the
+    same intents (installing software, chat apps, payments) for real reasons."""
+    s, p = "legitimate", "phishing"
+    return [
+        Scenario("dev/phish/zh-police-isolation-a", "dev", p, "Chinese impersonation scam",
+                 "Fake prosecutor asks for a private video call in a quiet room.",
+                 build("检察院办案人员 <office@jcy-case-handling.example>", "案件协查通知",
+                       "你涉嫌参与一起跨境洗钱案，现需远程协助调查。请找一个没有人的房间，"
+                       "通过视频和我们连线，调查期间不要和任何人说起此事。\n")),
+        Scenario("dev/phish/zh-police-isolation-b", "dev", p, "Chinese impersonation scam",
+                 "Fake officer asks for screen sharing and silence.",
+                 build("王警官 <wang.jg@case-verify-office.example>", "身份核实",
+                       "您名下的银行卡被犯罪团伙使用，需要核实资金来源。请下载会议软件并开启屏幕共享，"
+                       "核实结束前不要声张。\n")),
+        Scenario("dev/phish/parcel-fee-a", "dev", p, "delivery scam",
+                 "Parcel held for a small handling charge.",
+                 build("Courier Desk <help@courier-hold-desk.example>", "Parcel on hold",
+                       "Your parcel is on hold at our depot. A $2.40 handling charge must be paid before "
+                       "it can be released.\n",
+                       html='<p><a href="https://courier-hold-desk.example/release">Release parcel</a></p>')),
+        Scenario("dev/phish/parcel-fee-b", "dev", p, "delivery scam",
+                 "Missed delivery that needs a rebooking payment.",
+                 build("Delivery Notice <notice@rebook-my-parcel.example>", "Missed delivery attempt",
+                       "Our driver could not reach you. To schedule a new delivery, confirm your details "
+                       "and pay $3.15 online.\n",
+                       html='<p><a href="https://rebook-my-parcel.example/schedule">Reschedule</a></p>')),
+        Scenario("dev/phish/exec-payment-a", "dev", p, "business email compromise",
+                 "Executive asks for a discreet same-day payment.",
+                 build("Laura Bennett <laura.bennett.exec@gmail.com>", "Need this done today",
+                       "Please make a same-day payment of $18,900 to the supplier below. This is sensitive, "
+                       "so don't discuss it with anyone else in the team.\n")),
+        Scenario("dev/phish/exec-payment-b", "dev", p, "business email compromise",
+                 "Director asks for a quiet transfer before an acquisition is announced.",
+                 build("Mark Ellis <director.mark.ellis@outlook.com>", "Acquisition - private",
+                       "We're closing an acquisition. I need you to send $42,000 to our legal adviser's "
+                       "account this morning. Between you and me for now, please.\n")),
+        Scenario("dev/phish/zh-rental-away-a", "dev", p, "Chinese rental scam",
+                 "Landlord working out of town wants the deposit first.",
+                 build("刘女士 <liu.landlord@mail-host.example>", "关于租房",
+                       "房子在的，我现在在外地工作回不去，你先付两个月押金到我账户，我把钥匙快递给你。\n")),
+        Scenario("dev/phish/zh-rental-away-b", "dev", p, "Chinese rental scam",
+                 "Landlord abroad asks for a deposit before handing over the keys through a friend.",
+                 build("Mr Zhou <zhou.house@mail-host.example>", "公寓出租",
+                       "我人不在国内，公寓交给朋友打理。你把定金打过来，朋友就把钥匙交给你，直接入住。\n")),
+        Scenario("dev/phish/trading-cold-open-a", "dev", p, "investment scam",
+                 "'Wrong number' opener that turns to a forex platform with large returns.",
+                 build("Grace Wong <grace.w.invest@mail-host.example>", "Is this Kevin?",
+                       "Hi Kevin, is this still your email? Oh sorry, wrong person! Since we're chatting, "
+                       "I've been earning 25% a month on a forex platform my mentor runs.\n")),
+        Scenario("dev/phish/trading-cold-open-b", "dev", p, "investment scam",
+                 "Stranger who 'got the wrong contact' offers to teach futures trading.",
+                 build("Vivian Ho <vivian.ho.mkts@mail-host.example>", "Sorry to bother you",
+                       "Sorry to bother you, I think I got the wrong contact. If you're interested, my "
+                       "futures account made 60% profit this quarter and I can teach you.\n")),
+        Scenario("dev/phish/service-expiry-a", "dev", p, "renewal scam",
+                 "Website hosting 'expires today' and must be renewed through an unrelated site.",
+                 build("Hosting Billing <billing@host-renewal-desk.example>", "Hosting expires today",
+                       "Your website hosting expires today. Renew now or your website and email will be "
+                       "deleted.\n",
+                       html='<p><a href="https://host-renewal-desk.example/renew">Renew hosting</a></p>')),
+        Scenario("dev/phish/service-expiry-b", "dev", p, "renewal scam",
+                 "Cloud storage plan about to lapse, with photo loss threatened.",
+                 build("Cloud Storage <storage@photo-cloud-plans.example>", "Final reminder: storage plan",
+                       "Your storage plan has lapsed. Update your payment information to avoid losing your "
+                       "photos and files.\n",
+                       html='<p><a href="https://photo-cloud-plans.example/billing">Update payment</a></p>')),
+        Scenario("dev/phish/chat-app-recruiter-a", "dev", p, "job scam",
+                 "Recruiter moves the 'interview' to WhatsApp.",
+                 build("Recruiting Team <talent@flexi-roles-hiring.example>", "You've been shortlisted",
+                       "Thanks for your interest. Our hiring manager conducts interviews over WhatsApp. "
+                       "Add her number to arrange your interview.\n")),
+        Scenario("dev/phish/chat-app-recruiter-b", "dev", p, "job scam",
+                 "Chinese job lead asks to add a WeChat contact to receive tasks.",
+                 build("招聘专员 <zhaopin@part-time-hr.example>", "线上职位邀请",
+                       "您好，您的简历已通过初筛。请添加HR微信，获取岗位说明和入职安排。\n")),
+        Scenario("dev/legit/it-install-mfa-app", "dev", s, "IT notice",
+                 "Real IT notice asking staff to install the official authenticator app.",
+                 build("Monash eSolutions <servicedesk@monash.edu>", "Set up Okta Verify",
+                       "Please download and install the Okta Verify app from the App Store or Google Play "
+                       "before 1 November to keep signing in.\n")),
+        Scenario("dev/legit/zh-club-wechat-group", "dev", s, "Chinese club notice",
+                 "Club invites new members to its WeChat group.",
+                 build("中国学联 <cssa@monash.edu>", "欢迎加入新生群",
+                       "欢迎新同学！请添加学联微信小助手，拉你进新生交流群，获取活动通知。\n")),
+        Scenario("dev/legit/registrar-renewal", "dev", s, "renewal notice",
+                 "Real domain registrar renewal reminder.",
+                 build("Namecheap <support@namecheap.com>", "Domain renewal reminder",
+                       "Your domain kaiq7an.dev expires in 30 days. Auto-renew is on, so no action is "
+                       "needed.\n")),
+        Scenario("dev/legit/finance-invoice-approval", "dev", s, "workplace request",
+                 "Real finance request to approve a supplier invoice in the usual system.",
+                 build("Monash Finance <finance@monash.edu>", "Invoice awaiting your approval",
+                       "Invoice 55120 from Officeworks ($1,240.00) is awaiting your approval in the finance "
+                       "system. Please review it by Friday.\n")),
+        Scenario("dev/legit/agency-rental-deposit", "dev", s, "property notice",
+                 "Real agency explaining the bond after a viewing and signed lease.",
+                 build("Ray White Clayton <rentals.clayton@raywhite.com>", "Next steps for your lease",
+                       "Thanks for signing the lease. Please pay the bond of $1,920 through the RTBA portal; "
+                       "keys can be collected from our office on the start date.\n")),
+        Scenario("dev/legit/conference-whatsapp", "dev", s, "event",
+                 "Conference inviting attendees to an optional WhatsApp community.",
+                 build("UniHack <team@unihack.net>", "UniHack 2026: you're in!",
+                       "You're registered for UniHack 2026. Join our WhatsApp community for updates on the "
+                       "day. See you there!\n")),
+        Scenario("dev/legit/zh-friend-wrong-person", "dev", s, "personal",
+                 "Friend apologising for a message sent to the wrong person.",
+                 build("Kevin Li <kevin.li.92@gmail.com>", "发错了",
+                       "不好意思，刚才那封邮件发错人了，请忽略。周末见！\n")),
+    ]
+
+
 def _holdout() -> list[Scenario]:
     s, p = "legitimate", "phishing"
     return [
@@ -827,7 +941,7 @@ def _holdout_round_four() -> list[Scenario]:
     ]
 
 
-SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _holdout() + _holdout_round_two() + _holdout_round_three() + _holdout_round_four())
+SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _dev_round_five() + _holdout() + _holdout_round_two() + _holdout_round_three() + _holdout_round_four())
 
 
 # Scenario id -> why the current rules miss it. Remove an entry when it is fixed.
@@ -837,6 +951,18 @@ KNOWN_GAPS: dict[str, str] = {
         "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
     "dev/phish/bonus-letter-login": "A 'log in to view' request with a link to the sender's own login page reads like "
                                     "a genuine HR portal notice; telling them apart needs sender reputation.",
+    "dev/phish/parcel-fee-a": "Small handling or rebooking charges are not recognised as payment requests.",
+    "dev/phish/parcel-fee-b": "Small handling or rebooking charges are not recognised as payment requests.",
+    "dev/phish/exec-payment-a": "A discreet payment request from a free-mail executive is not recognised.",
+    "dev/phish/exec-payment-b": "A discreet payment request from a free-mail executive is not recognised.",
+    "dev/phish/zh-rental-away-a": "Deposits to an absent landlord (在外地, 押金到我账户) are not recognised.",
+    "dev/phish/zh-rental-away-b": "Deposits to an absent landlord (人不在国内, 定金) are not recognised.",
+    "dev/phish/trading-cold-open-a": "'Wrong person' openers and percentage returns are not recognised.",
+    "dev/phish/trading-cold-open-b": "'Wrong person' openers and percentage returns are not recognised.",
+    "dev/phish/service-expiry-a": "Threats to delete a service unless renewed are not recognised.",
+    "dev/phish/service-expiry-b": "Threats to lose files unless payment details are updated score only one signal.",
+    "dev/phish/chat-app-recruiter-a": "Moving a conversation to a chat app is not recognised.",
+    "dev/phish/chat-app-recruiter-b": "Moving a conversation to a chat app (添加微信) is not recognised.",
     "holdout/phish/crypto-investment": "Missed by the baseline rules (holdout: not used for tuning).",
     "holdout2/phish/remote-job-cheque": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout2/phish/esign-settlement": "Missed by the round-two rules (holdout2: not used for tuning).",
