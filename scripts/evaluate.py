@@ -74,6 +74,25 @@ def by_split(outcomes: list[Outcome]) -> dict[str, dict]:
     return {name: metrics(items) for name, items in splits.items()}
 
 
+def kind(scenario: Scenario) -> str | None:
+    """``variant`` rewords a category earlier rounds covered; ``new`` is a
+    category no round targeted. Older scenarios carry no kind."""
+    name = scenario.id.rsplit("/", 1)[-1]
+    return next((k for k in ("variant", "new") if name.startswith(k + "-")), None)
+
+
+def by_kind(outcomes: list[Outcome]) -> dict[str, dict]:
+    """Phishing recall for reworded versus new categories, per split."""
+    result = {}
+    for split in SPLITS:
+        for k in ("variant", "new"):
+            items = [o for o in outcomes if o.scenario.split == split and kind(o.scenario) == k
+                     and o.scenario.label == "phishing"]
+            if items:
+                result[f"{split}/{k}"] = {"phishing": len(items), "detected": sum(o.flagged for o in items)}
+    return result
+
+
 def _pct(value: float | None) -> str:
     return "n/a" if value is None else f"{value:.0%}"
 
@@ -85,6 +104,11 @@ def to_text(outcomes: list[Outcome]) -> str:
         lines.append(f"{name:<9} {m['scenarios']:>3} {m['true_positive']:>3} {m['false_negative']:>3} "
                      f"{m['false_positive']:>3} {m['true_negative']:>3} {_pct(m['precision']):>10} "
                      f"{_pct(m['recall']):>7} {_pct(m['accuracy']):>9}")
+    kinds = by_kind(outcomes)
+    if kinds:
+        lines += ["", "Phishing detected by kind (variant = reworded known category, new = untargeted category)"]
+        for name, k in kinds.items():
+            lines.append(f"  {name:<18} {k['detected']}/{k['phishing']}")
     wrong = [o for o in outcomes if not o.correct]
     lines += ["", f"Misclassified ({len(wrong)})"]
     for o in wrong:
@@ -105,6 +129,7 @@ def to_markdown(outcomes: list[Outcome]) -> str:
 def to_json(outcomes: list[Outcome]) -> str:
     return json.dumps({
         "metrics": by_split(outcomes),
+        "phishing_by_kind": by_kind(outcomes),
         "scenarios": [{"id": o.scenario.id, "split": o.scenario.split, "label": o.scenario.label,
                        "level": o.level, "score": o.score, "correct": o.correct, "findings": list(o.codes)}
                       for o in outcomes],
