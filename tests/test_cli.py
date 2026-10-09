@@ -137,6 +137,7 @@ def test_directory_without_eml_files(tmp_path, capsys):
     assert "no .eml files" in capsys.readouterr().err
 
 
+@pytest.mark.skipif(os.name == "nt", reason="Windows does not allow control characters in file names")
 def test_batch_summary_escapes_untrusted_filenames(fixture_path, tmp_path, capsys):
     target = tmp_path / "evil\x1b[2J.eml"
     target.write_bytes(fixture_path("dmarc_spoof.eml").read_bytes())
