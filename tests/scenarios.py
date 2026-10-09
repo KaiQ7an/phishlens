@@ -4,10 +4,10 @@ Every message here is invented for evaluation. Labels and splits were written
 before the analyzer was run on them:
 
 * ``dev`` scenarios may guide rule changes.
-* ``holdout`` to ``holdout6`` scenarios must never be used to tune rules;
+* ``holdout`` to ``holdout7`` scenarios must never be used to tune rules;
   they only measure whether a change generalises. Do not edit a holdout
   scenario to make it pass. Each holdout's missed categories shaped the
-  next round of dev scenarios, so the newest set, ``holdout6``, is the
+  next round of dev scenarios, so the newest set, ``holdout7``, is the
   current unseen measure.
 
 A phishing scenario counts as detected when the verdict is suspicious or high.
@@ -65,7 +65,7 @@ def build(sender: str, subject: str, text: str, *, html: str | None = None, auth
     return msg.as_bytes()
 
 
-SPLITS = ("dev", "holdout", "holdout2", "holdout3", "holdout4", "holdout5", "holdout6")
+SPLITS = ("dev", "holdout", "holdout2", "holdout3", "holdout4", "holdout5", "holdout6", "holdout7")
 
 FAKE = b"PhishLens evaluation placeholder; not a real document or program.\n"
 
@@ -1348,7 +1348,160 @@ def _holdout_round_six() -> list[Scenario]:
     ]
 
 
-SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _dev_round_five() + _dev_round_six() + _dev_round_seven() + _holdout() + _holdout_round_two() + _holdout_round_three() + _holdout_round_four() + _holdout_round_five() + _holdout_round_six())
+def _holdout_round_seven() -> list[Scenario]:
+    """Added 2026-10-09 after the negation change, before running it. Mostly
+    ordinary inbox mail, especially marketing and app notices that use
+    pressure, prizes, QR codes and chat apps for legitimate reasons, to
+    measure false alarms of the larger rule set. Run once; never used for
+    tuning."""
+    s, p = "legitimate", "phishing"
+    return [
+        Scenario("holdout7/legit/flash-sale", "holdout7", s, "marketing",
+                 "Retail flash sale with countdown pressure.",
+                 build("THE ICONIC <hello@email.theiconic.com.au>", "Ends tonight: 40% off",
+                       "Last chance! Our biggest sale ends tonight at midnight. Act now to save 40% on "
+                       "thousands of styles.\n")),
+        Scenario("holdout7/legit/loyalty-draw-winner", "holdout7", s, "marketing",
+                 "Supermarket loyalty program prize with a claim deadline.",
+                 build("Flybuys <noreply@flybuys.com.au>", "You've won 5,000 bonus points",
+                       "Congratulations, you've won 5,000 bonus points in our weekly draw! Claim your prize "
+                       "in the app within 7 days.\n")),
+        Scenario("holdout7/legit/cafe-qr-menu", "holdout7", s, "marketing",
+                 "Cafe newsletter about ordering by QR code.",
+                 build("Brother Baba Budan <news@brotherbababudan.com.au>", "New: order at your table",
+                       "You can now scan the QR code on your table to order and pay without queuing.\n")),
+        Scenario("holdout7/legit/gym-whatsapp", "holdout7", s, "community",
+                 "Gym inviting members to a WhatsApp group for class updates.",
+                 build("Monash Sport <sport@monash.edu>", "Join the class updates group",
+                       "We've started a WhatsApp group for class changes and cancellations. Add our number "
+                       "from the front desk to join.\n")),
+        Scenario("holdout7/legit/energy-bill-overdue", "holdout7", s, "bill",
+                 "Real energy retailer overdue reminder.",
+                 build("AGL <noreply@agl.com.au>", "Your bill is overdue",
+                       "Your electricity bill of $214.60 is now overdue. Please pay within 7 days to avoid a "
+                       "late payment fee. Pay in the AGL app or at agl.com.au.\n")),
+        Scenario("holdout7/legit/uber-eats-promo", "holdout7", s, "marketing",
+                 "Food delivery promotion.",
+                 build("Uber Eats <uber@uber.com>", "Free delivery this weekend",
+                       "Enjoy free delivery on orders over $25 this weekend. Offer ends Sunday.\n")),
+        Scenario("holdout7/legit/zh-taobao-coupon", "holdout7", s, "Chinese marketing",
+                 "Shopping app coupon with a deadline.",
+                 build("淘宝 <noreply@service.taobao.com>", "您有一张满减券即将过期",
+                       "您的满300减40优惠券将于今日24点过期，立即使用享受优惠。\n")),
+        Scenario("holdout7/legit/zh-meituan-delivery", "holdout7", s, "Chinese delivery notice",
+                 "Food delivery app arrival notice.",
+                 build("美团外卖 <noreply@meituan.com>", "骑手已送达",
+                       "您的外卖已送达，如有问题可在App内联系客服。祝您用餐愉快！\n")),
+        Scenario("holdout7/legit/linkedin-recruiter", "holdout7", s, "recruitment",
+                 "Recruiter message via LinkedIn about a real role.",
+                 build("LinkedIn <messages-noreply@linkedin.com>", "Sarah sent you a message",
+                       "Sarah Lee: Hi Kai, I'm hiring for a graduate security analyst role at Deloitte. "
+                       "Would you be open to a quick call next week?\n")),
+        Scenario("holdout7/legit/bank-new-payee", "holdout7", s, "bank notice",
+                 "Bank confirming a new payee the customer added.",
+                 build("ING <noreply@ing.com.au>", "New payee added",
+                       "You added a new payee, J Smith, on 9 October. If this wasn't you, call us on "
+                       "133 464 straight away.\n")),
+        Scenario("holdout7/legit/airline-checkin", "holdout7", s, "travel",
+                 "Airline check-in reminder.",
+                 build("Qantas <noreply@qantas.com.au>", "Check in now for your flight",
+                       "Check-in is now open for your flight QF401 to Sydney tomorrow. Check in online and "
+                       "download your boarding pass.\n")),
+        Scenario("holdout7/legit/zoom-recording", "holdout7", s, "workplace notice",
+                 "Meeting recording available.",
+                 build("Zoom <no-reply@zoom.us>", "Cloud recording is now available",
+                       "The cloud recording of 'FIT3178 consultation' is now available. Share it with your "
+                       "team from the Zoom web portal.\n")),
+        Scenario("holdout7/legit/strava-challenge", "holdout7", s, "app notice",
+                 "Fitness app challenge with a reward.",
+                 build("Strava <no-reply@strava.com>", "You completed the October 5K challenge",
+                       "Nice work! You completed the October 5K Challenge. Claim your reward badge in the app.\n")),
+        Scenario("holdout7/legit/zh-wechat-security", "holdout7", s, "Chinese security notice",
+                 "Real messaging app login notice.",
+                 build("微信团队 <weixin@tencent.com>", "微信登录提醒",
+                       "你的微信帐号于10月9日在新设备登录。如非本人操作，请立即在手机上修改密码。\n")),
+        Scenario("holdout7/legit/landlord-maintenance", "holdout7", s, "property notice",
+                 "Agency arranging maintenance access.",
+                 build("Barry Plant Clayton <pm.clayton@barryplant.com.au>", "Plumber visit Thursday",
+                       "A plumber will attend on Thursday between 9am and 12pm to fix the hot water. Keys "
+                       "will be collected from our office; you don't need to be home.\n")),
+        Scenario("holdout7/legit/charity-monthly-donor", "holdout7", s, "charity",
+                 "Charity thanking a monthly donor.",
+                 build("Oxfam Australia <supporter@oxfam.org.au>", "Your monthly gift at work",
+                       "Thank you for your monthly donation. This year, supporters like you helped 12,000 "
+                       "families access clean water.\n")),
+        Scenario("holdout7/legit/tax-agent-reminder", "holdout7", s, "professional services",
+                 "Tax agent reminding a client to send documents.",
+                 build("H&R Block <noreply@hrblock.com.au>", "Lodge before 31 October",
+                       "Your tax return is due by 31 October. Upload your income statement so we can lodge "
+                       "it for you.\n")),
+        Scenario("holdout7/legit/student-union-election", "holdout7", s, "university notice",
+                 "Student union election reminder.",
+                 build("MSA <elections@monashstudentassociation.com>", "Voting closes tomorrow",
+                       "Voting in the MSA elections closes tomorrow at 5pm. Log in with your student account "
+                       "to vote.\n")),
+        Scenario("holdout7/legit/zh-alipay-transfer-receipt", "holdout7", s, "Chinese receipt",
+                 "Payment app transfer receipt.",
+                 build("支付宝 <service@mail.alipay.com>", "转账成功",
+                       "您已成功向王磊转账87.00元。\n")),
+        Scenario("holdout7/legit/parcel-locker", "holdout7", s, "delivery notice",
+                 "Parcel locker collection code.",
+                 build("Australia Post <noreply@notifications.auspost.com.au>", "Your parcel is in a locker",
+                       "Your parcel is in Parcel Locker 3168 Clayton. Use collection code 482913 within 2 days.\n")),
+        Scenario("holdout7/legit/github-sponsor-payout", "holdout7", s, "platform notice",
+                 "Platform payout notice.",
+                 build("GitHub Sponsors <noreply@github.com>", "Your payout is on its way",
+                       "Your GitHub Sponsors payout of $35.00 has been sent to your bank account ending 4421.\n")),
+        Scenario("holdout7/legit/lecturer-extension", "holdout7", s, "university notice",
+                 "Lecturer approving an assignment extension.",
+                 build("Dr Sarah Chen <sarah.chen@monash.edu>", "Re: extension request",
+                       "Hi Kai, your extension is approved. Please submit by Friday 5pm and keep this email "
+                       "as confirmation.\n")),
+        Scenario("holdout7/legit/zh-bank-promo", "holdout7", s, "Chinese marketing",
+                 "Bank card promotion.",
+                 build("招商银行 <promotion@cmbchina.com>", "刷卡赢好礼",
+                       "本月使用招行信用卡消费满3笔，即可参与抽奖，有机会赢取iPad。活动详情请见掌上生活App。\n")),
+        Scenario("holdout7/legit/airbnb-host-message", "holdout7", s, "booking",
+                 "Host message relayed by the platform.",
+                 build("Airbnb <express@airbnb.com>", "Message from your host",
+                       "Daniel: Hi! Check-in is from 3pm. The lockbox code will be sent through the app on "
+                       "the day. Enjoy your stay.\n")),
+        Scenario("holdout7/phish/variant-zh-parcel-claim", "holdout7", p, "Chinese delivery scam",
+                 "Lost parcel compensation that needs card details.",
+                 build("快递理赔中心 <lipei@express-claims-cn.example>", "包裹丢失赔付",
+                       "您的快递在运输中丢失，我们将按三倍赔付。请回复您的姓名、银行卡号和收到的验证码，"
+                       "以便赔款到账。\n")),
+        Scenario("holdout7/phish/variant-boss-urgent-transfer", "holdout7", p, "business email compromise",
+                 "Free-mail 'CFO' wants an urgent transfer kept quiet.",
+                 build("Rachel Kim <rachel.kim.cfo@gmail.com>", "Urgent transfer",
+                       "Can you transfer $9,800 to the vendor account below before noon? I'm boarding a "
+                       "flight. Please don't mention this to anyone until it's done.\n")),
+        Scenario("holdout7/phish/new-fake-unsubscribe", "holdout7", p, "credential harvest",
+                 "Spam complaint notice whose 'unsubscribe' link asks for a mailbox login.",
+                 build("Mail Compliance <compliance@mailbox-optout.example>", "Too many spam complaints",
+                       "Your mailbox has received too many spam reports. Sign in to confirm your email "
+                       "preferences or sending will be restricted.\n",
+                       html='<p><a href="https://mailbox-optout.example/signin">Confirm preferences</a></p>')),
+        Scenario("holdout7/phish/new-zh-education-refund", "holdout7", p, "Chinese refund scam",
+                 "Fake training school refund that requires a 'deposit' to release.",
+                 build("培训退费处 <tuifei@edu-refund-cn.example>", "课程退费通知",
+                       "您之前报名的网课可申请全额退费。系统需先验证您的还款能力，请先存入1,000元保证金，"
+                       "退费将连同保证金一起返还。\n")),
+        Scenario("holdout7/phish/new-pet-deposit", "holdout7", p, "pet scam",
+                 "Puppy seller who cannot meet and wants a transport deposit.",
+                 build("Puppy Haven <breeder.lucy@mail-host.example>", "Your puppy is ready",
+                       "Max is ready for his new home! As I'm interstate, I'll arrange pet transport. "
+                       "Please pay the $450 transport deposit by PayID today to secure him.\n")),
+        Scenario("holdout7/phish/new-fake-invoice-dispute", "holdout7", p, "malware delivery",
+                 "Invoice dispute with a disk image attachment.",
+                 build("Billing Dispute <disputes@invoice-check-team.example>", "Disputed charge INV-7781",
+                       "A charge on your account has been disputed. Review the attached statement and reply "
+                       "within 48 hours.\n",
+                       attachments=(("statement-7781.iso", "application", "octet-stream", FAKE),))),
+    ]
+
+
+SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _dev_round_five() + _dev_round_six() + _dev_round_seven() + _holdout() + _holdout_round_two() + _holdout_round_three() + _holdout_round_four() + _holdout_round_five() + _holdout_round_six() + _holdout_round_seven())
 
 
 # Scenario id -> why the current rules miss it. Remove an entry when it is fixed.
@@ -1378,4 +1531,11 @@ KNOWN_GAPS: dict[str, str] = {
     "holdout6/phish/new-enrolment-fee": "Missed by the round-six rules (holdout6: not used for tuning).",
     "holdout6/phish/new-zh-service-close": "Missed by the round-six rules (holdout6: not used for tuning).",
     "holdout6/phish/new-crypto-recovery": "Missed by the round-six rules (holdout6: not used for tuning).",
+    "holdout7/phish/new-fake-unsubscribe": "Missed by the rules after the negation change (holdout7: not used for tuning).",
+    "holdout7/phish/new-zh-education-refund": "Missed by the rules after the negation change (holdout7: not used for tuning).",
+    "holdout7/phish/new-pet-deposit": "Missed by the rules after the negation change (holdout7: not used for tuning).",
+    "holdout7/legit/loyalty-draw-winner": "False alarm: a loyalty prize with a claim deadline reads as a windfall "
+                                          "lure with time pressure.",
+    "holdout7/legit/zh-wechat-security": "False alarm: the chat app's own login notice mentions WeChat and "
+                                         "advises changing the password (修改密码).",
 }
