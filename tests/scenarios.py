@@ -212,6 +212,91 @@ def _dev_phishing() -> list[Scenario]:
     ]
 
 
+def _dev_round_four() -> list[Scenario]:
+    """Added 2026-10-09. Categories follow the holdout3 misses (callback
+    phishing, fines and fees, prizes, wallet secrets, HR lures, charity and
+    immigration scams); the text is written fresh. Legitimate messages probe
+    false alarms, including existing authority rules on university mail."""
+    s, p = "legitimate", "phishing"
+    return [
+        Scenario("dev/phish/callback-tech-support", "dev", p, "callback phishing",
+                 "Fake tech-support plan renewal that asks the reader to phone to cancel.",
+                 build("Geek Support Renewals <orders@tech-plan-billing.example>", "Your plan renewal receipt",
+                       "Thank you for renewing your Total Tech Protection plan. $289.99 has been charged to "
+                       "your account. To cancel and request a refund, call 1-800-555-0199.\n")),
+        Scenario("dev/phish/zh-callback-renewal", "dev", p, "Chinese callback phishing",
+                 "Fake membership auto-renewal that asks the reader to phone to cancel.",
+                 build("会员服务中心 <vip@member-renew-center.example>", "会员自动续费通知",
+                       "您的年度会员将于今日自动续费899元。如需取消，请立即致电客服 400-800-1234 办理。\n")),
+        Scenario("dev/phish/parking-infringement", "dev", p, "payment lure",
+                 "Fake parking infringement with a rising penalty and an unrelated payment host.",
+                 build("Infringement Notices <fines@parking-penalty-notice.example>", "Infringement notice 4410982",
+                       "An unpaid parking fine of $120 is recorded against your vehicle. Pay within 7 days "
+                       "or a late fee will be added.\n",
+                       html='<p><a href="https://parking-penalty-notice.example/pay">Pay fine</a></p>')),
+        Scenario("dev/phish/zh-prize-postage", "dev", p, "Chinese prize scam",
+                 "Prize notice that only needs a small postage fee.",
+                 build("周年庆活动组 <gift@anniversary-gift.example>", "恭喜您获得幸运大奖",
+                       "恭喜您在周年庆活动中抽中iPhone一台！只需支付邮费9.9元即可免费领取，"
+                       "名额有限，先到先得。\n")),
+        Scenario("dev/phish/seed-phrase-upgrade", "dev", p, "crypto theft",
+                 "Wallet 'security upgrade' asking the reader to confirm their seed phrase.",
+                 build("Wallet Security <security@wallet-upgrade-team.example>", "Mandatory wallet security upgrade",
+                       "A mandatory security upgrade is required for your wallet. Confirm your seed phrase "
+                       "on the upgrade page to keep access to your funds.\n",
+                       html='<p><a href="https://wallet-upgrade-team.example/upgrade">Upgrade wallet</a></p>')),
+        Scenario("dev/phish/bonus-letter-login", "dev", p, "credential harvest",
+                 "Performance bonus letter behind a login page on an unrelated host.",
+                 build("People & Culture <people@bonus-letters-portal.example>", "Q4 performance bonus letter",
+                       "Your Q4 performance bonus letter is ready. Log in to view your bonus amount.\n",
+                       html='<p><a href="https://bonus-letters-portal.example/login">View bonus letter</a></p>')),
+        Scenario("dev/phish/charity-gift-cards", "dev", p, "charity scam",
+                 "Hospital appeal that asks for donations as gift cards.",
+                 build("Children's Hospital Appeal <appeal@kids-hospital-help.example>", "Can you help a sick child?",
+                       "Our appeal closes tonight. The fastest way to donate is to buy gift cards and reply "
+                       "with the card numbers so we can redeem them for the families.\n")),
+        Scenario("dev/phish/immigration-penalty", "dev", p, "government impersonation",
+                 "Fake immigration notice demanding a penalty and passport copy.",
+                 build("Immigration Compliance <compliance@visa-status-review.example>", "Visa compliance review",
+                       "The Department of Home Affairs has found a problem with your visa. Pay the "
+                       "compliance penalty of $750 and upload a copy of your passport within 48 hours.\n")),
+        Scenario("dev/legit/uni-safety-police", "dev", s, "university notice",
+                 "University security notice that tells students to contact the police.",
+                 build("Monash Security <security@monash.edu>", "Campus safety reminder",
+                       "If you see suspicious behaviour on campus, contact Monash Security or Victoria Police "
+                       "on 000. Scam calls claiming to be from the police are common; hang up and call back "
+                       "on an official number.\n")),
+        Scenario("dev/legit/uni-visa-advice", "dev", s, "university notice",
+                 "International office reminder about visa conditions.",
+                 build("Monash International <international@monash.edu>", "Keeping your visa conditions",
+                       "The Department of Home Affairs requires student visa holders to maintain enrolment. "
+                       "Contact us if you plan to reduce your study load.\n")),
+        Scenario("dev/legit/council-parking-fine", "dev", s, "government notice",
+                 "Real council parking infringement from a government domain.",
+                 build("City of Melbourne <parking@melbourne.vic.gov.au>", "Infringement notice 9921004",
+                       "An infringement notice of $99 has been issued for your vehicle. Pay within 21 days "
+                       "at melbourne.vic.gov.au/pay or request a review.\n")),
+        Scenario("dev/legit/bank-alert-phone", "dev", s, "bank notice",
+                 "Real bank transaction alert with the bank's phone number.",
+                 build("CommBank <alerts@commbank.com.au>", "Card transaction alert",
+                       "A $64.20 transaction was made on your card ending 1234. If you didn't make this "
+                       "transaction, call us on 13 22 21.\n")),
+        Scenario("dev/legit/zh-icloud-renewal", "dev", s, "Chinese subscription notice",
+                 "Real subscription renewal notice.",
+                 build("Apple <no_reply@email.apple.com>", "您的订阅即将续订",
+                       "您的 iCloud+ 订阅将于11月1日自动续订，费用为每月6元。如需取消，可在设置中管理订阅。\n")),
+        Scenario("dev/legit/staff-bonus-portal", "dev", s, "workplace notice",
+                 "Real HR notice telling staff to sign in to the staff portal.",
+                 build("Monash HR <hr@monash.edu>", "Your remuneration letter",
+                       "Your 2027 remuneration letter is available. Sign in to the staff portal to view it.\n")),
+        Scenario("dev/legit/photo-competition-winner", "dev", s, "club notice",
+                 "Student club telling a member they won a competition, with no payment.",
+                 build("Monash Photography Club <photoclub@monash.edu>", "You won!",
+                       "Congratulations, you have won first prize in our photo competition! Collect your "
+                       "prize from the club room on Wednesday.\n")),
+    ]
+
+
 def _holdout() -> list[Scenario]:
     s, p = "legitimate", "phishing"
     return [
@@ -639,7 +724,7 @@ def _holdout_round_three() -> list[Scenario]:
     ]
 
 
-SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _holdout() + _holdout_round_two() + _holdout_round_three())
+SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _holdout() + _holdout_round_two() + _holdout_round_three())
 
 
 # Scenario id -> why the current rules miss it. Remove an entry when it is fixed.
@@ -647,6 +732,15 @@ KNOWN_GAPS: dict[str, str] = {
     "dev/legit/newsletter-tracked-url-text":
         "Click tracking whose visible text is the final URL reads as an anchor mismatch; only Constant "
         "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
+    "dev/phish/callback-tech-support": "No signal for callback phishing: a charge plus a phone number to cancel.",
+    "dev/phish/zh-callback-renewal": "No signal for callback phishing (致电取消).",
+    "dev/phish/parking-infringement": "Fines, penalties and late fees are not payment requests.",
+    "dev/phish/zh-prize-postage": "No signal for prizes that need a fee (中奖 + 邮费).",
+    "dev/phish/seed-phrase-upgrade": "Requests for a wallet seed or recovery phrase are not recognised.",
+    "dev/phish/bonus-letter-login": "'Log in to view' requests are not treated as credential requests.",
+    "dev/phish/charity-gift-cards": "Asking for gift card numbers scores only as a payment phrase.",
+    "dev/legit/uni-safety-police": "Any police mention from a non-government sender is escalated to high, "
+                                   "even advice to contact the police.",
     "holdout/phish/crypto-investment": "Missed by the baseline rules (holdout: not used for tuning).",
     "holdout2/phish/remote-job-cheque": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout2/phish/esign-settlement": "Missed by the round-two rules (holdout2: not used for tuning).",
