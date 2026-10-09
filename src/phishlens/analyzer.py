@@ -235,7 +235,9 @@ def _link_findings(links: list[Link], provider: str | None = None,
 
 
 _AUTHORITY_ASKS = {"content.payment", "content.credentials", "content.secrecy", "content.wallet_secret"}
-_GIFT_CARD_CODES_RE = re.compile(r"\b(?:card numbers|card codes|the codes|codes? on the back)\b|卡密")
+_GIFT_CARD_RE = re.compile(r"gift cards?|itunes cards?|google play cards?|steam cards?|礼品卡|购物卡|充值卡|京东卡|e卡")
+_GIFT_CARD_CODES_RE = re.compile(r"\b(?:card numbers|card codes|the codes|codes? on the back|scratch|"
+                                 r"(?:photos|pictures) of|the back of)\b|卡密|刮开|拍照")
 
 
 def _content_findings(email: ParsedEmail, visible_html_text: str) -> list[Finding]:
@@ -259,13 +261,13 @@ def _content_findings(email: ParsedEmail, visible_html_text: str) -> list[Findin
                                         f"{evidence}; sender {email.sender.domain}"))
                 continue
         findings.append(Finding(signal.code, signal.severity, signal.title, evidence))
-    if "content.payment" in codes and _GIFT_CARD_CODES_RE.search(text.lower()) and "gift card" in text.lower():
+    if _GIFT_CARD_RE.search(text.lower()) and _GIFT_CARD_CODES_RE.search(text.lower()):
         findings.append(Finding("content.gift_card_codes", "high",
                                 "Asks for gift card numbers or codes, which work like cash once shared",
                                 "gift card codes requested"))
     if number := find_callback_number(text):
         findings.append(Finding("content.callback", "high",
-                                "Reports a charge and gives a phone number to dispute it, a common way to move a scam to a call",
+                                "Reports a charge or legal claim and gives a phone number to dispute it, a common way to move a scam to a call",
                                 number))
     return findings
 

@@ -30,7 +30,8 @@ SIGNALS: tuple[Signal, ...] = (
         "verify your account", "confirm your password", "reset your password", "enter your password",
         "update your payment", "login to verify", "verification code", "one-time code",
         "bank account number", "copy of your id", "copy of your passport",
-        "密码", "验证码", "登录验证", "账户验证", "身份证号", "银行卡号", "身份证照片",
+        "card details", "verify your card", "update your card", "card number",
+        "密码", "验证码", "登录验证", "账户验证", "身份证号", "银行卡号", "身份证照片", "银行卡信息", "信用卡信息",
     )),
     Signal("content.payment", "medium", "Asks for money or an unusual payment method", (
         "gift card", "wire transfer", "bank transfer", "bitcoin", "western union", "processing fee",
@@ -39,13 +40,30 @@ SIGNALS: tuple[Signal, ...] = (
         "转账", "汇款", "保证金", "手续费", "安全账户", "比特币", "清关费", "西联", "收款账户", "银行账户变更",
         "垫付", "帮我转", "转给我", "借钱", "需要用钱", "急需用钱",
         "late fee", "penalty", "unpaid", "postage fee", "缴纳", "罚款", "滞纳金", "邮费",
-        "must be paid", "needs to be paid", "押金", "定金", "订金", "打过来",
+        "must be paid", "needs to be paid", "押金", "定金", "订金", "打过来", "监管账户",
+        "礼品卡", "购物卡", "充值卡", "京东卡", "e卡",
     ), (
         # A payment verb or "payment of" followed closely by an amount.
         r"\b(?:pay|send|transfer|wire|remit)\s+(?:[\w-]+\s+){0,4}?[$€£¥]\s?\d",
         r"\bpayment of\s+[$€£¥]\s?\d",
         # Money sent to "my"/"this" card or account.
         r"(?:到|给|进)(?:我|我的|这个|指定)(?:的)?(?:卡|账户|账号|银行卡)",
+        r"\bto (?:my|our|this|the following)\s+(?:[\w'-]+\s+){0,2}account\b",
+        r"\b(?:import|customs)\s+(?:duty|duties|tax|fees?)\s+(?:of\s+)?[$€£¥]\s?\d",
+    )),
+    Signal("content.overpayment", "medium", "Says you were paid or refunded too much and asks for it back", (
+        "overpaid", "overpayment", "refunded twice", "issued twice", "duplicate refund", "send back the",
+        "refund the extra", "return the difference", "refund the difference",
+        "多付", "多转", "转错", "退还差额", "多退",
+    )),
+    Signal("content.money_mule", "high", "Asks you to receive money and pass it on, which makes you a money mule", (
+        "forward the remainder", "forward the rest", "send the rest", "send the remainder",
+        "transfer the rest", "pass on the rest", "receive customer payments", "receive payments into your account",
+        "代收款", "代收", "剩余的钱", "剩下的钱",
+    ), (r"\bkeep\s+(?:\d{1,2}%|[$€£¥]\s?\d)", r"留下\s*\d{1,2}%")),
+    Signal("content.legal_threat", "medium", "Threatens legal action or debt collection", (
+        "legal action", "legal proceedings", "court proceedings", "court summons", "debt collector",
+        "lawsuit", "起诉", "法院传票", "律师函", "法律责任", "诉讼",
     )),
     Signal("content.wallet_secret", "high", "Asks for a wallet recovery phrase or private key, which no genuine service requests", (
         "seed phrase", "recovery phrase", "secret phrase", "private key", "助记词", "私钥",
@@ -106,7 +124,8 @@ SIGNALS: tuple[Signal, ...] = (
     Signal("content.account_threat", "medium", "Threatens to disable or delete an account or page", (
         "copyright infringement", "will be disabled", "will be permanently deleted", "scheduled for deletion",
         "violated our community", "violates our community", "submit an appeal",
-        "will be deleted", "avoid losing", "has lapsed", "will lapse",
+        "will be deleted", "avoid losing", "has lapsed", "will lapse", "will be cancelled",
+        "will be canceled", "将被取消", "征信", "不良记录",
         "侵犯版权", "版权侵权", "将被封禁", "永久封禁", "将被删除", "违反社区",
     )),
     Signal("content.qr_code", "medium", "Asks you to scan a QR code, which hides the link from checks", (
@@ -131,7 +150,8 @@ SIGNALS: tuple[Signal, ...] = (
 # A phone number introduced by "call"/"致电" and at least eight digits long,
 # so dates, amounts and short service numbers are not mistaken for one.
 _CALL_NUMBER_RE = re.compile(r"(?:\bcall\b|\bphone\b|\bdial\b|致电|拨打)\D{0,25}?(\+?\d[\d\s().-]{6,}\d)")
-_CHARGE_PHRASES = ("charged", "renewed", "renewal", "to cancel", "refund", "续费", "扣款", "取消", "退款")
+_CHARGE_PHRASES = ("charged", "renewed", "renewal", "to cancel", "refund", "legal", "court", "debt",
+                   "续费", "扣款", "取消", "退款", "起诉", "欠款", "诉讼")
 
 
 def find_signals(text: str) -> list[tuple[Signal, list[str]]]:
@@ -148,8 +168,8 @@ def find_signals(text: str) -> list[tuple[Signal, list[str]]]:
 
 
 def find_callback_number(text: str) -> str | None:
-    """Return a phone number offered to dispute a charge, the shape of callback
-    phishing, which moves the scam to a phone call that no link check sees."""
+    """Return a phone number offered to dispute a charge or legal claim, the
+    shape of callback phishing, which moves the scam to a call no link check sees."""
     lowered = text.lower()
     if not any(phrase in lowered for phrase in _CHARGE_PHRASES):
         return None

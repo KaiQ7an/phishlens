@@ -263,3 +263,39 @@ def test_receipts_are_not_payment_requests(body):
 def test_a_parcel_with_a_payment_request_is_suspicious_but_a_delivery_notice_is_not():
     assert analyze(_email("Courier", "mail-host.example", "Your parcel is held. Pay $3.15 to rebook.")).level != "low"
     assert analyze(_email("Courier", "mail-host.example", "Your parcel was delivered today.")).level == "low"
+
+
+@pytest.mark.parametrize("code, body", [
+    ("content.overpayment", "I overpaid you by $900, please refund the extra."),
+    ("content.overpayment", "系统多转了一笔，请退还差额。"),
+    ("content.money_mule", "Keep 10% as commission and forward the remainder."),
+    ("content.money_mule", "你留下5%，剩余的钱转到公司账户。"),
+    ("content.legal_threat", "We will refer this to a debt collector."),
+    ("content.legal_threat", "我司将依法起诉。"),
+    ("content.credentials", "Verify your card details to keep the booking."),
+    ("content.account_threat", "The reservation will be cancelled."),
+    ("content.account_threat", "否则将影响个人征信。"),
+    ("content.payment", "Your parcel is held until import duty of $8.70 is paid."),
+    ("content.payment", "Please refund it to my cousin's account."),
+])
+def test_round_six_signals(code, body):
+    assert code in {f.code for f in analyze(_email("Sender", "mail-host.example", body)).findings}
+
+
+@pytest.mark.parametrize("body, flagged", [
+    ("Scratch off the strip and email me photos of the back of the gift cards.", True),
+    ("帮我买几张京东E卡，刮开后拍照发给我。", True),
+    ("We are collecting supermarket gift cards for families in need.", False),
+])
+def test_gift_card_code_requests(body, flagged):
+    codes = {f.code for f in analyze(_email("Sender", "mail-host.example", body)).findings}
+    assert ("content.gift_card_codes" in codes) == flagged
+
+
+def test_legal_threat_with_a_number_to_call_is_callback_phishing():
+    codes = {f.code for f in analyze(_email("Recovery", "mail-host.example",
+                                            "Court proceedings will begin. Phone our officer on 02 5550 7788.")).findings}
+    assert "content.callback" in codes
+    codes = {f.code for f in analyze(_email("Lawyer", "firm.example",
+                                            "We will call you after the court hearing on 3 November.")).findings}
+    assert "content.callback" not in codes
