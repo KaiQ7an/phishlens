@@ -113,7 +113,11 @@ def verify_package(artifact: Path, working: Path, build_deps: Path,
         report = json.loads(output)
         require(report["level"] == "high" and report["findings"],
                 f"Phishing fixture should produce a high-risk JSON report: {name}")
-    print(f"Verified {artifact.name}: version, imports, text/JSON reports and risk exit codes")
+    batch = json.loads(run([str(cli), "analyze", str(Path(clean).parent), "--json", "--fail-on", "high"],
+                           working, expected=2))
+    require(batch["summary"]["analysed"] == len(fixtures) and batch["summary"]["high"] == len(fixtures) - 1,
+            f"Directory analysis should summarise every fixture: {batch['summary']}")
+    print(f"Verified {artifact.name}: version, imports, text/JSON/batch reports and risk exit codes")
 
 
 def main() -> int:
