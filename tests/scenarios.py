@@ -377,8 +377,5 @@ KNOWN_GAPS: dict[str, str] = {
     "dev/legit/newsletter-tracked-url-text":
         "Click tracking whose visible text is the final URL reads as an anchor mismatch; only Constant "
         "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
-    "dev/phish/facebook-page-violation": "No signal for account takedown threats; Meta brands are not protected.",
-    "dev/phish/instagram-badge-lookalike": "Instagram is not a protected brand, so the lookalike domain is not recognised.",
     "holdout/phish/crypto-investment": "Missed by the baseline rules (holdout: not used for tuning).",
-    "holdout/phish/social-copyright-appeal": "Missed by the baseline rules (holdout: not used for tuning).",
 }

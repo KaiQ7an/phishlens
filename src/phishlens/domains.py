@@ -31,11 +31,14 @@ PROTECTED_BRANDS: dict[str, tuple[str, ...]] = {
     "commbank": ("commbank.com.au",),
     "auspost": ("auspost.com.au",),
     "mygov": ("my.gov.au",),
+    "facebook": ("facebook.com", "facebookmail.com", "meta.com", "fb.com"),
+    "instagram": ("instagram.com",),
 }
 # Product names that stand for a protected brand in display names and domains.
 BRAND_ALIASES: dict[str, tuple[str, ...]] = {
     "microsoft": ("sharepoint", "onedrive", "office 365", "microsoft 365"),
     "auspost": ("australia post",),
+    "facebook": ("meta",),  # too short for domain tokens; used for display names only
 }
 
 

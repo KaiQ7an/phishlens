@@ -140,3 +140,19 @@ def test_guaranteed_returns_are_investment_lures():
     codes = {f.code for f in analyze(_email("Broker", "mail-host.example",
                                             "Your statement shows portfolio returns for September.")).findings}
     assert "content.investment" not in codes
+
+
+def test_meta_brands_are_protected():
+    from phishlens.domains import find_lookalike
+    assert find_lookalike("instagram-verify-team.example").imitates == "instagram.com"
+    assert find_lookalike("meta-analysis.example") is None
+    codes = {f.code for f in analyze(_email("Meta Support", "page-review.example", "Hello.")).findings}
+    assert "header.display_name_brand" in codes
+    codes = {f.code for f in analyze(_email("Meta", "facebookmail.com", "Hello.")).findings}
+    assert "header.display_name_brand" not in codes
+
+
+def test_account_takedown_threats_are_flagged():
+    for body in ("Your page will be disabled unless you submit an appeal.", "您的账号将被封禁。"):
+        codes = {f.code for f in analyze(_email("Support", "mail-host.example", body)).findings}
+        assert "content.account_threat" in codes, body

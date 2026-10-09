@@ -43,6 +43,11 @@ SIGNALS: tuple[Signal, ...] = (
         "before inspection", "before the inspection",
         "在海外", "人在国外", "无法看房", "无法带你看房", "钥匙寄给你", "先付押金", "先交押金",
     )),
+    Signal("content.account_threat", "medium", "Threatens to disable or delete an account or page", (
+        "copyright infringement", "will be disabled", "will be permanently deleted", "scheduled for deletion",
+        "violated our community", "violates our community", "submit an appeal",
+        "侵犯版权", "版权侵权", "将被封禁", "永久封禁", "将被删除", "违反社区",
+    )),
     Signal("content.qr_code", "medium", "Asks you to scan a QR code, which hides the link from checks", (
         "scan the qr code", "scan this qr code", "scan the code with your phone",
         "扫描二维码", "扫码",
