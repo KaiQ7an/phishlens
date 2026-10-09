@@ -57,7 +57,7 @@ PhishLens 是离线 `.eml` 钓鱼迹象分析 CLI，输出可解释的风险分�
 | --- | --- |
 | `message.py` | 有界文件读取、MIME/地址解析、警告与附件元数据 |
 | `auth.py` | 认证子句、注释/引号边界、重复结果与来源声明 |
-| `domains.py` / `urls.py` | 域名与仿冒规则、离线链接和可见文字提取 |
+| `domains.py` / `urls.py` | 域名与仿冒规则（含 `--brands` 自定义品牌，按单次分析生效）、离线链接和可见文字提取 |
 | `mailings.py` | 狭窄的邮件服务商路由形状识别 |
 | `content.py` / `attachments.py` | 中英文话术与附件文件名规则 |
 | `analyzer.py` / `scoring.py` | 组合发现、校准条件、评分与风险等级 |
@@ -104,8 +104,8 @@ python scripts/verify_distribution.py --dist-dir "$phishlens_dist_dir" --build-d
 
 ## 本轮最终验证记录
 
-- 代码提交截至 `8d27271`，本文件所在文档提交之后推送到 `origin/main`。
-- Python 3.14.8 重装 wheel 后：**713 passed, 26 xfailed**（xfail 为已记录的已知缺口）。
+- 代码提交截至 `f7dd2a7`，本文件所在文档提交之后推送到 `origin/main`。
+- Python 3.14.8 重装 wheel 后：**728 passed, 26 xfailed**（xfail 为已记录的已知缺口）。
 - wheel/sdist 构建、`twine check` 及仓库外两个新环境中的离线包检查（含目录批量分析）全部通过。
 - 六封公开 fixture：正常邮件 0；五封钓鱼均为 high；README 示例输出已与实际输出核对。
 - GitHub Actions：CI #6–#15 全部通过（已在网页核对）；之后推送的运行结果需再次核对。
@@ -114,4 +114,4 @@ python scripts/verify_distribution.py --dist-dir "$phishlens_dist_dir" --build-d
 
 1. 与用户确认检测策略：停止追 holdout 的规则轮次，或研究其他方法（例如可选的本地统计模型，训练数据必须有许可且不入库）。在决定前，可做的工作是提高精确率（更多误报探针）与可用性。
 2. 明确许可证，完成陌生用户安装和报告理解的最终检查，再单独执行正式发布步骤。正式发布仍保持延后。
-3. 批量分析已完成（多文件或目录，汇总表与 JSON）。后续可研究更完整的离线域名数据、可配置品牌/语言规则和报告对比。公开 Web 服务或外部信誉查询属于新范围，不能悄悄加入当前离线 CLI。
+3. 批量分析与自定义品牌（`--brands`）已完成。后续可研究更完整的离线域名数据、可配置语言规则和报告对比。公开 Web 服务或外部信誉查询属于新范围，不能悄悄加入当前离线 CLI。

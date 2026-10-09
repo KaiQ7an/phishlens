@@ -60,6 +60,23 @@ phishlens analyze /path/to/folder/                # every .eml in the folder
 phishlens analyze one.eml two.eml --json > summary.json
 ```
 
+To protect brands beyond the built-in list, such as your employer or another
+university, pass a small JSON file mapping each brand name to the registrable
+domains that legitimately send for it:
+
+```bash
+cat > my-brands.json <<'JSON'
+{"acme bank": ["acmebank.com.au"], "monash": ["monashcollege.edu.au"]}
+JSON
+phishlens analyze /path/to/message.eml --brands my-brands.json
+```
+
+Custom brands are checked in display names and lookalike domains like the
+built-in ones, and domains listed for an existing brand extend it. The file is
+limited to 64 KiB and 100 brands; names are 3–40 letters, digits or spaces, and
+domains must be registrable domains such as `example.com`, not subdomains,
+URLs or IP addresses. An invalid file stops the run with status 1.
+
 Several paths, or a directory, give a summary table sorted by score, with each
 file's verdict and top finding; directories are not searched recursively. Run
 the command on a single file to see all findings and evidence. With `--json`,
@@ -94,7 +111,7 @@ messages, pipes, and device files. It also rejects MIME trees with more than
 | Exit status | Meaning |
 | --- | --- |
 | 0 | Analysis completed below the requested threshold, or no threshold was set |
-| 1 | An input could not be read, was empty, or exceeded supported input limits, or a directory had no `.eml` files |
+| 1 | An input could not be read, was empty, or exceeded supported input limits, a directory had no `.eml` files, or the `--brands` file was invalid |
 | 2 | The risk threshold was reached by any analysed file, or command-line arguments were invalid |
 
 In a batch, status 1 takes precedence over status 2: an incomplete run is
@@ -343,7 +360,7 @@ python -m pip install '.[dev]'
 python -m pytest -q
 ```
 
-The current suite has 739 tests (including 26 expected failures for known
+The current suite has 754 tests (including 26 expected failures for known
 gaps) for message parsing, input limits, malformed MIME,
 text decoding, authentication-header ambiguity, domains, links, inline/container
 attachments, language signals, scoring, mailing-route boundaries, safe report
@@ -410,9 +427,8 @@ phishlens --version
 - **Before formal release:** review CI results, expand independent synthetic
   scenarios and compatibility checks, decide licensing, and complete final
   usability review. Tagged releases and PyPI publication remain deferred.
-- **Later:** broader domain data and configurable brand/language rules, plus
-  report comparison. Batch analysis of several files or a directory is
-  available now.
+- **Later:** broader domain data and configurable language rules, plus report
+  comparison. Batch analysis and custom protected brands are available now.
 - **Optional future work:** explicit opt-in reputation lookups with caching and
   clear disclosure of submitted URLs/hashes. `intel.py` currently contains an
   interface stub only; external lookups are not implemented.
