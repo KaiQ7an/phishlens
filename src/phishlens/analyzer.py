@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -10,8 +11,8 @@ from urllib.parse import urlsplit
 from . import attachments as attachment_rules
 from .auth import AuthVerdicts, parse_authentication_results
 from .content import CHAT_APP_DOMAINS, asking_text, find_callback_number, find_signals
-from .domains import (PROTECTED_BRANDS, PROTECTED_DOMAINS, brand_terms, find_lookalike, is_government,
-                      is_ip, is_mixed_script, same_site, to_unicode)
+from .domains import (brand_terms, custom_brands, find_lookalike, is_government, is_ip, is_mixed_script,
+                      protected_brands, protected_domains, same_site, to_unicode)
 from .intel import OfflineIntel, ThreatIntel
 from .mailings import mailing_service, tracking_service
 from .message import DEFAULT_MAX_BYTES, Attachment, ParsedEmail, parse_file
@@ -131,7 +132,7 @@ def _header_findings(email: ParsedEmail, provider: str | None = None) -> list[Fi
                                 to_unicode(sender.domain)))
 
     name = sender.display_name.lower()
-    for brand, domains in PROTECTED_BRANDS.items():
+    for brand, domains in protected_brands().items():
         term = next((t for t in brand_terms(brand) if re.search(rf"\b{re.escape(t)}\b", name)), None)
         if term and not any(same_site(sender.domain, d) for d in domains):
             findings.append(Finding("header.display_name_brand", "high",
@@ -199,7 +200,7 @@ def _link_findings(links: list[Link], provider: str | None = None,
             route_context = (provider and link.source == "html"
                              and _ordinary_visible_site(link)
                              and not link.anchor_looks_like_login
-                             and not any(same_site(claimed, domain) for domain in PROTECTED_DOMAINS)
+                             and not any(same_site(claimed, domain) for domain in protected_domains())
                              and find_lookalike(claimed) is None and not is_mixed_script(claimed)
                              and tracking_service(link.url, sender_domain) == provider)
             if route_context:
@@ -291,7 +292,14 @@ def _attachment_findings(email: ParsedEmail, visible_html_text: str = "") -> lis
     return findings
 
 
-def analyze(email: ParsedEmail, source: str = "", intel: ThreatIntel | None = None) -> Report:
+def analyze(email: ParsedEmail, source: str = "", intel: ThreatIntel | None = None,
+            brands: Mapping[str, tuple[str, ...]] | None = None) -> Report:
+    """Analyse a parsed email. ``brands`` adds protected brands for this call."""
+    with custom_brands(brands):
+        return _analyze(email, source, intel)
+
+
+def _analyze(email: ParsedEmail, source: str, intel: ThreatIntel | None) -> Report:
     intel = intel or OfflineIntel()  # week 2: reputation lookups plug in here
     html_links, visible_html_text = parse_html(email.html) if email.html else ([], "")
     html_urls = {link.url for link in html_links}
@@ -318,5 +326,6 @@ def analyze(email: ParsedEmail, source: str = "", intel: ThreatIntel | None = No
 
 
 def analyze_file(path: str | Path, intel: ThreatIntel | None = None,
-                 *, max_bytes: int = DEFAULT_MAX_BYTES) -> Report:
-    return analyze(parse_file(path, max_bytes=max_bytes), source=str(path), intel=intel)
+                 *, max_bytes: int = DEFAULT_MAX_BYTES,
+                 brands: Mapping[str, tuple[str, ...]] | None = None) -> Report:
+    return analyze(parse_file(path, max_bytes=max_bytes), source=str(path), intel=intel, brands=brands)

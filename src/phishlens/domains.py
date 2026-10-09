@@ -9,8 +9,14 @@ an unknown multi-level suffix falls back to the last two labels.
 from __future__ import annotations
 
 import ipaddress
+import json
+import re
 import unicodedata
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
+from pathlib import Path
 
 MULTI_LEVEL_SUFFIXES = frozenset({
     "com.au", "net.au", "org.au", "edu.au", "gov.au", "asn.au", "id.au",
@@ -48,6 +54,78 @@ def brand_terms(brand: str) -> tuple[str, ...]:
 
 
 PROTECTED_DOMAINS = frozenset(d for domains in PROTECTED_BRANDS.values() for d in domains)
+
+# Brands a user adds for one analysis (phishlens analyze --brands FILE). They
+# extend the built-in list only inside custom_brands(), so separate analyses
+# in one process cannot leak brands into each other.
+_CUSTOM_BRANDS: ContextVar[Mapping[str, tuple[str, ...]]] = ContextVar("custom_brands", default={})
+MAX_BRAND_FILE_BYTES = 64 * 1024
+_BRAND_NAME_RE = re.compile(r"[a-z0-9][a-z0-9 ]{2,39}")
+_ASCII_LABEL_RE = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?")
+
+
+@contextmanager
+def custom_brands(brands: Mapping[str, tuple[str, ...]] | None) -> Iterator[None]:
+    token = _CUSTOM_BRANDS.set(dict(brands or {}))
+    try:
+        yield
+    finally:
+        _CUSTOM_BRANDS.reset(token)
+
+
+def protected_brands() -> dict[str, tuple[str, ...]]:
+    custom = _CUSTOM_BRANDS.get()
+    if not custom:
+        return PROTECTED_BRANDS
+    merged = dict(PROTECTED_BRANDS)
+    for brand, domains in custom.items():
+        merged[brand] = tuple(dict.fromkeys(merged.get(brand, ()) + tuple(domains)))
+    return merged
+
+
+def protected_domains() -> frozenset[str]:
+    if not _CUSTOM_BRANDS.get():
+        return PROTECTED_DOMAINS
+    return frozenset(d for domains in protected_brands().values() for d in domains)
+
+
+def load_brand_file(path: str | Path) -> dict[str, tuple[str, ...]]:
+    """Read {"brand name": ["domain", ...]} from a small JSON file.
+
+    Raises ValueError with a readable reason. Domains must be registrable
+    domains (example.com, example.com.au), not subdomains, IP addresses or URLs.
+    """
+    with open(path, "rb") as handle:
+        data = handle.read(MAX_BRAND_FILE_BYTES + 1)
+    if len(data) > MAX_BRAND_FILE_BYTES:
+        raise ValueError(f"file is larger than {MAX_BRAND_FILE_BYTES // 1024} KiB")
+    try:
+        value = json.loads(data.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError(f"not valid UTF-8 JSON ({error})") from error
+    if not isinstance(value, dict) or not value:
+        raise ValueError('expected an object such as {"acme": ["acme.com"]}')
+    if len(value) > 100:
+        raise ValueError("at most 100 brands are supported")
+    brands: dict[str, tuple[str, ...]] = {}
+    for raw_name, raw_domains in value.items():
+        name = " ".join(str(raw_name).lower().split())
+        if not _BRAND_NAME_RE.fullmatch(name):
+            raise ValueError(f"brand name {raw_name!r} must be 3-40 letters, digits or spaces")
+        if (not isinstance(raw_domains, list) or not 1 <= len(raw_domains) <= 20
+                or not all(isinstance(d, str) for d in raw_domains)):
+            raise ValueError(f"brand {name!r} needs a list of 1-20 domain names")
+        domains = []
+        for raw in raw_domains:
+            domain = raw.strip().lower().rstrip(".")
+            labels = domain.split(".")
+            if (len(domain) > 253 or len(labels) < 2 or is_ip(domain)
+                    or not all(_ASCII_LABEL_RE.fullmatch(label) for label in labels)
+                    or registrable_domain(domain) != domain):
+                raise ValueError(f"{raw!r} for brand {name!r} is not a registrable domain such as example.com")
+            domains.append(domain)
+        brands[name] = tuple(dict.fromkeys(domains))
+    return brands
 
 GOVERNMENT_SUFFIXES = ("gov", "mil", "gov.au", "gov.cn", "gov.uk", "govt.nz", "gov.hk", "gov.sg", "go.jp")
 
@@ -151,11 +229,12 @@ def find_lookalike(host: str) -> Lookalike | None:
     if not uhost or is_ip(uhost):
         return None
     reg = registrable_domain(uhost)
-    if reg in PROTECTED_DOMAINS:
+    protected = protected_domains()
+    if reg in protected:
         return None
 
     reg_skeleton = skeleton(reg)
-    legit_domains = sorted(PROTECTED_DOMAINS)
+    legit_domains = sorted(protected)
     for legit in legit_domains:
         if reg_skeleton == skeleton(legit):
             return Lookalike(legit, "homoglyph")
@@ -171,7 +250,7 @@ def find_lookalike(host: str) -> Lookalike | None:
         if len(legit_name) >= 4 and edit_distance(skeleton(name), legit_name) == 1:
             return Lookalike(legit, "typosquat")
     tokens = set(name.split("-"))
-    for brand, domains in PROTECTED_BRANDS.items():
+    for brand, domains in protected_brands().items():
         terms = [term.replace(" ", "") for term in brand_terms(brand)]
         if any(len(term) >= 5 and term in tokens for term in terms):
             return Lookalike(domains[0], "brand-keyword")
