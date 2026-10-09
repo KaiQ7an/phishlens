@@ -4,10 +4,10 @@ Every message here is invented for evaluation. Labels and splits were written
 before the analyzer was run on them:
 
 * ``dev`` scenarios may guide rule changes.
-* ``holdout``, ``holdout2`` and ``holdout3`` scenarios must never be used to tune rules;
+* ``holdout`` to ``holdout4`` scenarios must never be used to tune rules;
   they only measure whether a change generalises. Do not edit a holdout
   scenario to make it pass. Each holdout's missed categories shaped the
-  next round of dev scenarios, so the newest set, ``holdout3``, is the
+  next round of dev scenarios, so the newest set, ``holdout4``, is the
   current unseen measure.
 
 A phishing scenario counts as detected when the verdict is suspicious or high.
@@ -65,7 +65,7 @@ def build(sender: str, subject: str, text: str, *, html: str | None = None, auth
     return msg.as_bytes()
 
 
-SPLITS = ("dev", "holdout", "holdout2", "holdout3")
+SPLITS = ("dev", "holdout", "holdout2", "holdout3", "holdout4")
 
 FAKE = b"PhishLens evaluation placeholder; not a real document or program.\n"
 
@@ -724,7 +724,110 @@ def _holdout_round_three() -> list[Scenario]:
     ]
 
 
-SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _holdout() + _holdout_round_two() + _holdout_round_three())
+def _holdout_round_four() -> list[Scenario]:
+    """Added 2026-10-09 after the round-four rule changes, before running them.
+
+    ``variant-`` phishing scenarios reword categories earlier rounds covered,
+    to test whether rules generalise within a category; ``new-`` scenarios are
+    categories no round has targeted. Run once with fixed labels; never used
+    for tuning."""
+    s, p = "legitimate", "phishing"
+    return [
+        Scenario("holdout4/phish/variant-zh-police-video", "holdout4", p, "Chinese impersonation scam",
+                 "Fake police say the reader's identity was used in fraud and demand a private video statement.",
+                 build("刑侦支队 <case@sh-case-center.example>", "关于您身份信息被冒用的情况说明",
+                       "您好，这里是市公安局刑侦支队。您的身份信息被他人用于开设银行账户，涉及一起诈骗案。"
+                       "请配合调查，下载会议软件进行视频笔录，期间不得与他人联系。\n")),
+        Scenario("holdout4/phish/variant-parcel-address", "holdout4", p, "delivery scam",
+                 "Undeliverable parcel needing an address update and a small redirection charge.",
+                 build("Parcel Delivery <support@parcel-redirect-au.example>", "We couldn't deliver your parcel",
+                       "We tried to deliver your parcel but the address is incomplete. Update your address "
+                       "and pay the $1.99 redirection charge to rebook delivery.\n",
+                       html='<p><a href="https://parcel-redirect-au.example/update">Update address</a></p>')),
+        Scenario("holdout4/phish/variant-m365-password", "holdout4", p, "credential harvest",
+                 "Microsoft 365 password expiry from an unrelated domain.",
+                 build("Microsoft 365 Admin <admin@tenant-security-mail.example>", "Password expiry notice",
+                       "The password for your account expires today. Use the link below to keep your "
+                       "current password.\n",
+                       html='<p><a href="https://tenant-security-mail.example/keep">Keep password</a></p>')),
+        Scenario("holdout4/phish/variant-ceo-wire", "holdout4", p, "business email compromise",
+                 "Executive impersonation asking for an urgent, confidential payment to a new vendor.",
+                 build("Daniel Moore <daniel.moore.ceo@outlook.com>", "Confidential",
+                       "I need you to process a payment of $24,500 to a new vendor today. I'll send the "
+                       "account details shortly. Keep this between us until the deal is announced.\n")),
+        Scenario("holdout4/phish/variant-zh-rental-deposit", "holdout4", p, "Chinese rental scam",
+                 "Landlord who is 'away on business' wants a deposit before any viewing.",
+                 build("陈先生 <chen.fangdong@mail-host.example>", "房子还在，可以租",
+                       "你好，房子还在。我在外地出差，钥匙放在朋友那里。你先把一个月定金打到我卡上，"
+                       "我让朋友直接带你入住。\n")),
+        Scenario("holdout4/phish/variant-gold-trading", "holdout4", p, "investment scam",
+                 "'Wrong number' contact that steers toward a gold trading platform.",
+                 build("Amy Lin <amy.lin.trader@mail-host.example>", "Sorry, wrong email?",
+                       "Hi, sorry if I have the wrong address. By the way, I trade gold futures on my "
+                       "uncle's platform and made 40% last month. I can show you how to start with $1,000.\n")),
+        Scenario("holdout4/phish/new-sextortion", "holdout4", p, "extortion",
+                 "Claims to have recorded the reader and demands bitcoin.",
+                 build("Unknown <x9k2@mail-host.example>", "I know what you did",
+                       "I recorded you through your webcam. Pay $1,500 in Bitcoin within 48 hours or I "
+                       "will send the video to all your contacts.\n")),
+        Scenario("holdout4/phish/new-domain-expiry", "holdout4", p, "renewal scam",
+                 "Fake domain expiry notice linking to an unrelated renewal site.",
+                 build("Domain Services <renew@domain-renew-center.example>", "Domain expiry: kaiq7an.dev",
+                       "Your domain kaiq7an.dev expires today. Renew now to avoid losing your website "
+                       "and email.\n",
+                       html='<p><a href="https://domain-renew-center.example/renew">Renew domain</a></p>')),
+        Scenario("holdout4/phish/new-zh-loan-unfreeze", "holdout4", p, "Chinese loan scam",
+                 "Loan offer that needs an 'unfreeze fee' before release.",
+                 build("快捷贷款 <loan@fast-cash-cn.example>", "您的贷款已审批通过",
+                       "您申请的无抵押低息贷款50,000元已审批通过，因银行卡号填写有误资金被冻结，"
+                       "需先交500元解冻费即可当天放款。\n")),
+        Scenario("holdout4/phish/new-fake-recruiter-app", "holdout4", p, "job scam",
+                 "Recruiter moves the conversation to a chat app for an 'interview'.",
+                 build("Talent Acquisition <hr@remote-hiring-partners.example>", "Interview for Data Entry Clerk",
+                       "Your application has been shortlisted. Interviews are held on Telegram. Install the "
+                       "app and message our HR manager to schedule your interview today.\n")),
+        Scenario("holdout4/legit/amazon-delivered", "holdout4", s, "delivery notice",
+                 "Real retailer delivery confirmation.",
+                 build("Amazon.com.au <shipment-tracking@amazon.com.au>", "Delivered: your package",
+                       "Your package was delivered and left at the front door.\n")),
+        Scenario("holdout4/legit/github-token", "holdout4", s, "security notice",
+                 "Real developer platform security notice.",
+                 build("GitHub <noreply@github.com>", "A personal access token was added to your account",
+                       "A fine-grained personal access token was recently added to your account. If this "
+                       "wasn't you, review your account security settings.\n")),
+        Scenario("holdout4/legit/rent-reminder", "holdout4", s, "property notice",
+                 "Real agency rent reminder.",
+                 build("Ray White Clayton <rentals.clayton@raywhite.com>", "Rent reminder",
+                       "This is a friendly reminder that your rent of $480 is due on 15 October. Please pay "
+                       "using your usual method.\n")),
+        Scenario("holdout4/legit/tuition-fee-due", "holdout4", s, "university notice",
+                 "Real tuition reminder that mentions late fees.",
+                 build("Monash Student Fees <fees@monash.edu>", "Tuition fees due 31 October",
+                       "Your Semester 2 tuition fees are due by 31 October. Unpaid fees may incur a late "
+                       "fee and a hold on your enrolment.\n")),
+        Scenario("holdout4/legit/zh-didi-invoice", "holdout4", s, "Chinese receipt",
+                 "Real ride-hailing trip invoice.",
+                 build("滴滴出行 <invoice@didiglobal.com>", "您的行程电子发票",
+                       "您好，您申请的行程电子发票已开具，金额36.50元，请查收附件。\n",
+                       attachments=(("didi-invoice.pdf", "application", "pdf", FAKE),))),
+        Scenario("holdout4/legit/telco-outage", "holdout4", s, "service notice",
+                 "Real telco planned outage notice.",
+                 build("Telstra <noreply@telstra.com>", "Planned maintenance in your area",
+                       "We're upgrading the network in your area on 14 October between 1am and 5am. "
+                       "Your service may be briefly unavailable.\n")),
+        Scenario("holdout4/legit/friend-lunch-money", "holdout4", s, "personal",
+                 "Friend asking to borrow a small amount face to face.",
+                 build("Ben Wu <ben.wu.mel@gmail.com>", "lunch",
+                       "Hey, forgot my wallet. Can you spot me $15 for lunch when I see you at 12? "
+                       "I'll pay you back tonight.\n")),
+        Scenario("holdout4/legit/zh-wechat-bill", "holdout4", s, "Chinese bill",
+                 "Real payment platform monthly bill.",
+                 build("微信支付 <wxpay@tencent.com>", "您的9月账单已生成",
+                       "您9月共支出2,315.60元，收入500.00元，详细账单可在微信支付中查看。\n")),
+    ]
+
+
+SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _holdout() + _holdout_round_two() + _holdout_round_three() + _holdout_round_four())
 
 
 # Scenario id -> why the current rules miss it. Remove an entry when it is fixed.
@@ -742,4 +845,11 @@ KNOWN_GAPS: dict[str, str] = {
     "holdout3/phish/salary-adjustment": "Missed by the round-three rules (holdout3: not used for tuning).",
     "holdout3/phish/disaster-donation": "Missed by the round-three rules (holdout3: not used for tuning).",
     "holdout3/phish/onedrive-invoice": "Missed by the round-three rules (holdout3: not used for tuning).",
+    "holdout4/phish/variant-zh-police-video": "Missed by the round-four rules (holdout4: not used for tuning).",
+    "holdout4/phish/variant-parcel-address": "Missed by the round-four rules (holdout4: not used for tuning).",
+    "holdout4/phish/variant-ceo-wire": "Missed by the round-four rules (holdout4: not used for tuning).",
+    "holdout4/phish/variant-zh-rental-deposit": "Missed by the round-four rules (holdout4: not used for tuning).",
+    "holdout4/phish/variant-gold-trading": "Missed by the round-four rules (holdout4: not used for tuning).",
+    "holdout4/phish/new-domain-expiry": "Missed by the round-four rules (holdout4: not used for tuning).",
+    "holdout4/phish/new-fake-recruiter-app": "Missed by the round-four rules (holdout4: not used for tuning).",
 }
