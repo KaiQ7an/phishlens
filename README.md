@@ -156,15 +156,23 @@ accuracy on real email.
   documents and HTML/SVG files (high risk), disk images, and archives, including named inline
   MIME parts. An archive whose password is given in the message text is flagged
   as high risk; the archive itself is never opened.
-- English and Chinese language suggesting urgency, authority (including tax
-  offices), secrecy, unusual payments or bank-detail changes, guaranteed
-  investment returns, account takedown threats, money wanted before any meeting
-  or inspection, and requests to scan a QR code. The sender's display name is
-  read with the subject and body; keywords inside URLs are excluded.
+- English and Chinese language that signals a scam's intent: urgency and
+  deadlines, claims of authority (police, embassies, tax offices), secrecy or
+  isolation, requests for money (including a payment verb followed by an
+  amount, deposits and fees), identity documents, passwords or wallet recovery
+  phrases, guaranteed or percentage investment returns, prizes, job and
+  commission offers, a relative's "new number", vague favours, moving the
+  conversation to a chat app, screen-sharing or remote-access requests,
+  account takedown threats, money wanted before any meeting or inspection,
+  requests to scan a QR code, gift card codes, and a charge paired with a phone
+  number to dispute it (callback phishing). The sender's display name is read
+  with the subject and body; keywords inside URLs are excluded. An authority
+  mentioned in passing ("contact Victoria Police") is not escalated unless the
+  sender name or subject claims it, or the message also asks for something.
 - Product names such as SharePoint, OneDrive and Australia Post count as their
   brands in display names and domains. Protected brands include Monash,
   Microsoft, Google, Apple, PayPal, CommBank, Australia Post, myGov, Facebook
-  (Meta) and Instagram.
+  (Meta), Instagram and DocuSign.
 
 ## Scoring
 
@@ -210,27 +218,59 @@ Its support community also describes [intermediate click-tracking links](https:/
 
 ## Evaluation
 
-`scripts/evaluate.py` scores 66 labelled synthetic scenarios in
+`scripts/evaluate.py` scores 172 labelled synthetic scenarios in
 `tests/scenarios.py` (`--markdown` or `--json` for other formats). Each
 scenario's label was written before the rules were run against it. The
-**dev** split is used to find and fix rule gaps; the **holdout** splits are
-never used for tuning and show how the rules handle messages they were not
-shaped around. A phishing scenario counts as detected when it scores
-suspicious or high.
+**dev** split is used to find and fix rule gaps. Each **holdout** split was
+written after a round of rule changes, run once, and never used for tuning.
+Its missed categories then shaped the next round's dev scenarios, with fresh
+wording, so only the newest holdout measures unseen messages. A phishing
+scenario counts as detected when it scores suspicious or high.
 
-| Split | Scenarios | Precision | Recall | Notes |
-| --- | ---: | ---: | ---: | --- |
-| dev | 40 | 95% | 100% | Recall was 33% before the first round of fixes |
-| holdout | 12 | 100% | 83% | Was 17%; its missed categories later shaped dev scenarios, so it is no longer unseen |
-| holdout2 | 14 | 100% | 38% | Fresh set, written after the latest rules and run once |
+| Split | Written after | Phishing detected on first run | Phishing detected now | False alarms |
+| --- | --- | ---: | ---: | ---: |
+| holdout | the original rules | 1 / 6 | 6 / 6 | 0 / 6 |
+| holdout2 | round 2 | 3 / 8 | 6 / 8 | 0 / 6 |
+| holdout3 | round 3 | 1 / 10 | 5 / 10 | 0 / 8 |
+| holdout4 | round 4 | 3 / 10 | 8 / 10 | 0 / 8 |
+| holdout5 | round 5 | 5 / 12 | (current unseen set) | 0 / 10 |
 
-The holdout2 figure is the honest one: the rules cover what they were built
-from, but still miss most unfamiliar lures (job and task scams, family
-impersonation, e-signature lures, gift-card favours). Known misses and the
-one dev false alarm, a newsletter whose tracked link shows the final URL as
-its text, are listed in `KNOWN_GAPS` and run as strict expected failures, so a
-fix or regression is reported by the test suite. These are small synthetic
-sets, not measurements on real mail.
+The dev split has 88 scenarios with 98% recall and one false alarm.
+Holdout4 and holdout5 separate reworded versions of categories earlier
+rounds covered (`variant-`) from categories no round targeted (`new-`):
+
+| Split | Reworded known category | New category |
+| --- | ---: | ---: |
+| holdout4 (phrase rules) | 1 / 6 | 2 / 4 |
+| holdout5 (intent rules) | 4 / 7 | 1 / 5 |
+
+What the rounds show:
+
+- First-run recall on unseen scenarios stayed between 10% and 42%. Rules
+  mostly catch what they were written from; the much higher "now" column is
+  the effect of tuning, not of generalisation.
+- Rounds one to four added phrases per category. Holdout4 showed these barely
+  carried over even to reworded scams of the same category (1 of 6).
+- Round five instead targeted intents (a payment verb with an amount, moving
+  to a chat app, remote access, secrecy), each written against two independent
+  wordings. Holdout5's reworded scams were caught 4 of 7 times, though two of
+  those were caught by older brand rules, so the sample is too small to claim
+  more than a possible improvement.
+- Scams in new categories are still mostly missed, and some lures cannot be
+  separated from genuine mail by offline text at all: a "log in to view your
+  letter" notice linking to the sender's own login page reads like a real HR
+  portal notice without sender reputation.
+- No holdout false alarms were recorded across 38 legitimate scenarios,
+  including deliberate probes (real fines, bonds, refunds, remote IT support,
+  chat-group invitations, police advice from a university).
+- Synthetic attacker domains are stylised (hyphenated `.example` names), so
+  rules based on domain shape were deliberately not added; they would exploit
+  an artefact of the test data rather than a property of real phishing.
+
+Known misses and the one dev false alarm, a newsletter whose tracked link
+shows the final URL as its text, are listed in `KNOWN_GAPS` and run as strict
+expected failures, so a fix or regression is reported by the test suite.
+These are small synthetic sets, not measurements on real mail.
 
 ## Safety model and limitations
 
@@ -273,7 +313,7 @@ python -m pip install '.[dev]'
 python -m pytest -q
 ```
 
-The current suite has 471 tests (including 7 expected failures for known
+The current suite has 620 tests (including 18 expected failures for known
 gaps) for message parsing, input limits, malformed MIME,
 text decoding, authentication-header ambiguity, domains, links, inline/container
 attachments, language signals, scoring, mailing-route boundaries, safe report

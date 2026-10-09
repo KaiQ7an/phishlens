@@ -56,17 +56,35 @@
   delete an account or page; count USDT and crypto wallets as payment methods.
 - Rate macro-enabled Office attachments as high, since Office blocks macros in
   files from the internet by default.
-- Protect Facebook and Instagram, with "Meta" checked in display names only.
+- Protect Facebook and Instagram, with "Meta" checked in display names only,
+  and DocuSign.
+- Add signals for job and commission offers, a relative's "new number", vague
+  favours, prizes, wallet recovery phrases (high), gift card codes (high) and
+  callback phishing: a charge paired with a phone number to dispute it (high).
+- Recognise intents rather than single phrases: a payment verb followed by an
+  amount, money sent to "my" account, deposits and fees, moving to a chat app,
+  screen-sharing or remote-access requests, "wrong person" openers, parcel
+  context, percentage investment returns, absent landlords and threats to
+  delete a service. Deadlines such as "within 7 days" count as time pressure.
+
+### Fixed
+
+- Stop escalating every police or government mention from a non-government
+  sender: the high finding now needs the claim in the sender name or subject,
+  or alongside a request for money, identity details or secrecy. A university
+  safety notice that tells students to contact the police is no longer flagged.
+- Report evidence matched by both a phrase and a pattern once.
 
 ### Validation
 
-- Add 66 labelled synthetic scenarios in dev, holdout and holdout2 splits,
-  with `scripts/evaluate.py` reporting precision and recall per split. Dev
-  recall rose from 33% to 100% across two rounds of fixes. Round-one holdout
-  recall rose from 17% to 83%, but its missed categories shaped round-two dev
-  scenarios; the fresh holdout2 set, run once, reports 38% recall with no
-  false alarms. Remaining misses run as strict expected failures.
-- Expand the regression suite to 471 synthetic tests.
+- Add 172 labelled synthetic scenarios: a dev split for tuning and five
+  holdout splits, each written after a round of rule changes and run once.
+  `scripts/evaluate.py` reports precision and recall per split and, for newer
+  holdouts, detection of reworded versus new categories. First-run recall on
+  unseen holdouts ranged from 10% to 42% with no false alarms; the README
+  explains what the rounds show. Remaining misses run as strict expected
+  failures.
+- Expand the regression suite to 620 synthetic tests.
 - Add CI for Linux Python 3.11–3.14 and macOS/Windows Python 3.14.
 - Build and smoke-test wheel/source archives using isolated installations
   outside the checkout without network access during installation.
