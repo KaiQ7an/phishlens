@@ -73,6 +73,10 @@
   screen-sharing or remote-access requests, "wrong person" openers, parcel
   context, percentage investment returns, absent landlords and threats to
   delete a service. Deadlines such as "within 7 days" count as time pressure.
+- Add signals for returning an overpayment, money mules (high) and legal or
+  debt threats; a legal claim with a phone number counts as callback phishing.
+  Card-detail requests, cancellation and credit-record threats, import duty
+  with an amount and photos of scratched gift cards are recognised.
 
 ### Fixed
 
@@ -81,17 +85,20 @@
   or alongside a request for money, identity details or secrecy. A university
   safety notice that tells students to contact the police is no longer flagged.
 - Report evidence matched by both a phrase and a pattern once.
+- Ignore safety advice that says what will never be asked ("we will never ask
+  for your seed phrase", 绝不会索要) for request-type signals, per sentence, so
+  a reassurance cannot hide a request elsewhere in the message.
 
 ### Validation
 
-- Add 172 labelled synthetic scenarios: a dev split for tuning and five
+- Add 224 labelled synthetic scenarios: a dev split for tuning and six
   holdout splits, each written after a round of rule changes and run once.
   `scripts/evaluate.py` reports precision and recall per split and, for newer
   holdouts, detection of reworded versus new categories. First-run recall on
-  unseen holdouts ranged from 10% to 42% with no false alarms; the README
-  explains what the rounds show. Remaining misses run as strict expected
-  failures.
-- Expand the regression suite to 625 synthetic tests.
+  unseen holdouts ranged from 8% to 42% without an upward trend, with one
+  false alarm across 52 legitimate holdout messages; the README explains what
+  the rounds show. Remaining misses run as strict expected failures.
+- Expand the regression suite to 698 synthetic tests.
 - Add CI for Linux Python 3.11–3.14 and macOS/Windows Python 3.14.
 - Build and smoke-test wheel/source archives using isolated installations
   outside the checkout without network access during installation.

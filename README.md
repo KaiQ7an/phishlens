@@ -176,7 +176,10 @@ accuracy on real email.
   conversation to a chat app, screen-sharing or remote-access requests,
   account takedown threats, money wanted before any meeting or inspection,
   requests to scan a QR code, gift card codes, and a charge paired with a phone
-  number to dispute it (callback phishing). The sender's display name is read
+  number to dispute it (callback phishing), returning an "overpayment",
+  receiving and forwarding money, and legal or credit-record threats.
+  Sentences that say what will never be asked ("we will never ask for your
+  seed phrase") are not read as requests. The sender's display name is read
   with the subject and body; keywords inside URLs are excluded. An authority
   mentioned in passing ("contact Victoria Police") is not escalated unless the
   sender name or subject claims it, or the message also asks for something.
@@ -229,7 +232,7 @@ Its support community also describes [intermediate click-tracking links](https:/
 
 ## Evaluation
 
-`scripts/evaluate.py` scores 172 labelled synthetic scenarios in
+`scripts/evaluate.py` scores 224 labelled synthetic scenarios in
 `tests/scenarios.py` (`--markdown` or `--json` for other formats). Each
 scenario's label was written before the rules were run against it. The
 **dev** split is used to find and fix rule gaps. Each **holdout** split was
@@ -238,45 +241,54 @@ Its missed categories then shaped the next round's dev scenarios, with fresh
 wording, so only the newest holdout measures unseen messages. A phishing
 scenario counts as detected when it scores suspicious or high.
 
-| Split | Written after | Phishing detected on first run | Phishing detected now | False alarms |
+| Split | Written after | Phishing detected on first run | Phishing detected now | False alarms on first run |
 | --- | --- | ---: | ---: | ---: |
 | holdout | the original rules | 1 / 6 | 6 / 6 | 0 / 6 |
 | holdout2 | round 2 | 3 / 8 | 6 / 8 | 0 / 6 |
-| holdout3 | round 3 | 1 / 10 | 5 / 10 | 0 / 8 |
+| holdout3 | round 3 | 1 / 10 | 6 / 10 | 0 / 8 |
 | holdout4 | round 4 | 3 / 10 | 8 / 10 | 0 / 8 |
-| holdout5 | round 5 | 5 / 12 | (current unseen set) | 0 / 10 |
+| holdout5 | round 5 | 5 / 12 | 11 / 12 | 0 / 10 |
+| holdout6 | round 6 | 1 / 12 | (current unseen set) | 1 / 14 |
 
-The dev split has 88 scenarios with 98% recall and one false alarm.
-Holdout4 and holdout5 separate reworded versions of categories earlier
-rounds covered (`variant-`) from categories no round targeted (`new-`):
+The dev split has 114 scenarios with 98% recall and one false alarm.
+Holdouts 4–6 separate reworded versions of categories earlier rounds covered
+(`variant-`) from categories no round targeted (`new-`):
 
 | Split | Reworded known category | New category |
 | --- | ---: | ---: |
 | holdout4 (phrase rules) | 1 / 6 | 2 / 4 |
 | holdout5 (intent rules) | 4 / 7 | 1 / 5 |
+| holdout6 (intent rules) | 1 / 6 | 0 / 6 |
 
-What the rounds show:
+What six rounds show:
 
-- First-run recall on unseen scenarios stayed between 10% and 42%. Rules
-  mostly catch what they were written from; the much higher "now" column is
-  the effect of tuning, not of generalisation.
-- Rounds one to four added phrases per category. Holdout4 showed these barely
-  carried over even to reworded scams of the same category (1 of 6).
-- Round five instead targeted intents (a payment verb with an amount, moving
-  to a chat app, remote access, secrecy), each written against two independent
-  wordings. Holdout5's reworded scams were caught 4 of 7 times, though two of
-  those were caught by older brand rules, so the sample is too small to claim
-  more than a possible improvement.
-- Scams in new categories are still mostly missed, and some lures cannot be
-  separated from genuine mail by offline text at all: a "log in to view your
-  letter" notice linking to the sender's own login page reads like a real HR
-  portal notice without sender reputation.
-- No holdout false alarms were recorded across 38 legitimate scenarios,
-  including deliberate probes (real fines, bonds, refunds, remote IT support,
-  chat-group invitations, police advice from a university).
+- First-run recall on unseen scenarios was 8–42% (17%, 38%, 10%, 30%, 42%,
+  8%) and did not trend upward. The rules catch what they were written from;
+  the "now" column shows the effect of tuning, not generalisation.
+- Rounds one to four added phrases per category. Rounds five and six targeted
+  intents (a payment verb with an amount, moving to a chat app, remote access,
+  receiving and forwarding money), each written against two wordings.
+  Holdout5 suggested this helped with reworded scams (4 of 7), but holdout6
+  did not repeat it (1 of 6). With six or seven scenarios per cell, neither
+  result is reliable.
+- Precision held better than recall: one first-run false alarm across 52
+  legitimate holdout messages, many written as deliberate probes (real fines,
+  bonds, refunds, remote IT support, chat-group invitations, police advice,
+  job alerts). That false alarm, an exchange's reminder that it never asks for
+  a seed phrase, led to sentence-level handling of "we will never ask for…".
+- The same person wrote the rules and the holdouts. Knowing the rules can
+  bias holdout wording in either direction, which independent writers would
+  avoid.
+- Some lures cannot be separated from genuine mail by offline text: a "log in
+  to view your letter" notice linking to the sender's own login page reads
+  like a real HR portal notice without sender reputation.
 - Synthetic attacker domains are stylised (hyphenated `.example` names), so
   rules based on domain shape were deliberately not added; they would exploit
   an artefact of the test data rather than a property of real phishing.
+
+In short, PhishLens is best read as an explainer of recognised warning signs,
+not as a detector with a measured catch rate. A low score means no recognised
+signs, which, on this evidence, is weak assurance for unfamiliar scams.
 
 Known misses and the one dev false alarm, a newsletter whose tracked link
 shows the final URL as its text, are listed in `KNOWN_GAPS` and run as strict
@@ -324,7 +336,7 @@ python -m pip install '.[dev]'
 python -m pytest -q
 ```
 
-The current suite has 625 tests (including 18 expected failures for known
+The current suite has 698 tests (including 22 expected failures for known
 gaps) for message parsing, input limits, malformed MIME,
 text decoding, authentication-header ambiguity, domains, links, inline/container
 attachments, language signals, scoring, mailing-route boundaries, safe report

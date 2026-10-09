@@ -35,19 +35,20 @@ PhishLens 是离线 `.eml` 钓鱼迹象分析 CLI，输出可解释的风险分�
 
 ### 标注场景评估
 
-`tests/scenarios.py` 含 172 个先写标签、后跑规则的合成场景，`SPLITS = ("dev", "holdout", …, "holdout5")`。dev（88 个）用于发现和修正缺口；每个 holdout 都在一轮规则修改后新写、只运行一次、**不得用于调参**。其漏报类别会启发下一轮 dev 场景（文字重新写），因此只有最新的 holdout5 代表未见数据。`python scripts/evaluate.py`（`--markdown`/`--json`）按集合报告；holdout4/5 还按 `variant-`（已覆盖类别换说法）与 `new-`（从未针对的类别）分别统计。
+`tests/scenarios.py` 含 224 个先写标签、后跑规则的合成场景，`SPLITS = ("dev", "holdout", …, "holdout6")`。dev（114 个）用于发现和修正缺口；每个 holdout 都在一轮规则修改后新写、只运行一次、**不得用于调参**。其漏报类别会启发下一轮 dev 场景（文字重新写，第 5 轮起每类两种措辞），因此只有最新的 holdout6 代表未见数据。`python scripts/evaluate.py`（`--markdown`/`--json`）按集合报告；holdout4–6 还按 `variant-`（已覆盖类别换说法）与 `new-`（从未针对的类别）统计。
 
-| 集合 | 写于 | 首次运行检出 | 现在检出 | 误报 |
+| 集合 | 写于 | 首次运行检出 | 现在检出 | 首次误报 |
 | --- | --- | ---: | ---: | ---: |
 | holdout | 原始规则后 | 1/6 | 6/6 | 0/6 |
 | holdout2 | 第 2 轮后 | 3/8 | 6/8 | 0/6 |
-| holdout3 | 第 3 轮后 | 1/10 | 5/10 | 0/8 |
+| holdout3 | 第 3 轮后 | 1/10 | 6/10 | 0/8 |
 | holdout4 | 第 4 轮后 | 3/10（variant 1/6，new 2/4） | 8/10 | 0/8 |
-| holdout5 | 第 5 轮后 | 5/12（variant 4/7，new 1/5） | 当前未见集合 | 0/10 |
+| holdout5 | 第 5 轮后 | 5/12（variant 4/7，new 1/5） | 11/12 | 0/10 |
+| holdout6 | 第 6 轮后 | 1/12（variant 1/6，new 0/6） | 当前未见集合 | 1/14 |
 
-结论（详见 README Evaluation）：未见数据的首次召回率只有 10%–42%；前四轮按类别加短语，几乎不能推广到同类改写；第五轮改为按意图写规则，并且每类用两种独立措辞的 dev 场景，同类改写的检出从 1/6 升到 4/7（样本小，其中两个靠更早的品牌规则）。新类别仍大多漏掉；“登录查看信件”这类诱饵离线无法与真实 HR 通知区分。合成攻击域名风格单一（带连字符的 `.example`），故意**没有**加入基于域名形状的规则，以免利用测试数据的人为特征。
+结论（详见 README Evaluation）：六轮未见数据首次召回率 8%–42%，没有上升趋势；按意图写规则在 holdout5 的同类改写上看似有效（4/7），但 holdout6 没有重现（1/6），样本太小不能下结论。精确率较好：52 封 holdout 正常邮件只误报 1 次（“绝不会索要助记词”的安全提示），已通过句子级否定处理修复。规则和 holdout 由同一人编写，可能带来偏差。README 现明确：PhishLens 更适合作为“已知警示信号的解释工具”，而不是有可靠检出率的检测器。故意**没有**加入基于域名形状的规则（合成攻击域名风格单一，会利用测试数据的人为特征）。
 
-已知缺口都在 `KNOWN_GAPS`，以 strict xfail 运行；修好后删除对应条目。不要针对 holdout 文本加规则；研究漏报类别时另写 dev 场景（最好每类两种措辞），之后写 holdout6。
+已知缺口都在 `KNOWN_GAPS`，以 strict xfail 运行；修好后删除对应条目。**是否继续短语/意图规则轮次，或改用其他方法（例如基于有许可的公开语料的可选本地统计模型），需要用户决定**；在此之前不建议继续加规则追 holdout。
 
 ## 模块地图
 
@@ -63,7 +64,7 @@ PhishLens 是离线 `.eml` 钓鱼迹象分析 CLI，输出可解释的风险分�
 | `cli.py` / `__main__.py` | 安装命令、参数、退出码与批量（多文件/目录）汇总 |
 | `intel.py` | 离线接口占位；尚无外部信誉查询 |
 | `tests/` | 合成 fixtures 与回归测试；`test_evaluate.py` 检查评估脚本 |
-| `tests/scenarios.py` / `scripts/evaluate.py` | 172 个已标注合成场景（dev 与 holdout–holdout5）、`KNOWN_GAPS`、按集合及 variant/new 的评估 |
+| `tests/scenarios.py` / `scripts/evaluate.py` | 224 个已标注合成场景（dev 与 holdout–holdout6）、`KNOWN_GAPS`、按集合及 variant/new 的评估 |
 | `scripts/verify_distribution.py` | 检出目录外新环境中的 wheel/sdist 安装与 CLI 检查 |
 | `.github/workflows/ci.yml` | 跨版本/平台测试、构建和普通 CI 构件；不发布版本 |
 
@@ -102,14 +103,14 @@ python scripts/verify_distribution.py --dist-dir "$phishlens_dist_dir" --build-d
 
 ## 本轮最终验证记录
 
-- 规则与场景提交截至 `eef786a`，本文件所在文档提交之后推送到 `origin/main`。
-- Python 3.14.8 重装 wheel 后：**602 passed, 18 xfailed**（xfail 为已记录的已知缺口）。
-- wheel/sdist 构建、`twine check` 及仓库外两个新环境中的离线包检查全部通过；sdist 包含场景与评估脚本。
+- 代码提交截至 `413a601`，本文件所在文档提交之后推送到 `origin/main`。
+- Python 3.14.8 重装 wheel 后：**676 passed, 22 xfailed**（xfail 为已记录的已知缺口）。
+- wheel/sdist 构建、`twine check` 及仓库外两个新环境中的离线包检查（含目录批量分析）全部通过。
 - 六封公开 fixture：正常邮件 0；五封钓鱼均为 high；README 示例输出已与实际输出核对。
-- 上一个已验证 CI 运行见 [CI 运行](https://github.com/KaiQ7an/phishlens/actions/runs/37727234391)；之后多次推送的 CI 结果需在 GitHub Actions 中核对。
+- GitHub Actions：CI #6–#15 全部通过（已在网页核对）；之后推送的运行结果需再次核对。
 
 ## 下一步优先级
 
-1. 评估方法：继续“dev 两种措辞 → 新 holdout 只跑一次”的循环，重点是 holdout5 漏报的新类别（多付退款、校园贷注销、酒店预订确认、法律催收电话）；同时考虑非短语的方法（例如可选的本地统计模型），但训练数据不能包含真实邮件，需先与用户确认数据来源与许可。
+1. 与用户确认检测策略：停止追 holdout 的规则轮次，或研究其他方法（例如可选的本地统计模型，训练数据必须有许可且不入库）。在决定前，可做的工作是提高精确率（更多误报探针）与可用性。
 2. 明确许可证，完成陌生用户安装和报告理解的最终检查，再单独执行正式发布步骤。正式发布仍保持延后。
 3. 批量分析已完成（多文件或目录，汇总表与 JSON）。后续可研究更完整的离线域名数据、可配置品牌/语言规则和报告对比。公开 Web 服务或外部信誉查询属于新范围，不能悄悄加入当前离线 CLI。
