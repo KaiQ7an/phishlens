@@ -458,7 +458,82 @@ def _holdout_round_two() -> list[Scenario]:
     ]
 
 
-SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _holdout() + _holdout_round_two())
+def _dev_round_three() -> list[Scenario]:
+    """Added 2026-10-09. Categories follow the holdout2 misses (job and task
+    scams, family impersonation, e-signature lures, gift-card favours); the
+    text is written fresh. Legitimate messages probe false alarms from rules
+    for those categories."""
+    s, p = "legitimate", "phishing"
+    return [
+        Scenario("dev/phish/reshipping-job", "dev", p, "job scam",
+                 "Work-from-home 'parcel coordinator' job that turns the reader into a reshipping mule.",
+                 build("Recruitment <jobs@globalparcel-logistics.example>", "Work from home: parcel coordinator",
+                       "We found your resume online. Work from home as a parcel coordinator, no experience "
+                       "needed, and earn $600 per week. Receive parcels at home and reship them to our "
+                       "clients. Send a copy of your ID and your bank account number to get started.\n")),
+        Scenario("dev/phish/zh-review-commission", "dev", p, "Chinese task scam",
+                 "'Good review cashback' task that needs the reader to advance money.",
+                 build("客服小李 <service@haoping-fanxian.example>", "好评返现，轻松赚佣金",
+                       "您好，诚邀您参与商品好评任务，每单返现佣金5%-20%，在家即可操作。"
+                       "前几单为小额体验，之后需先垫付本金，系统会连同佣金一起返还。\n")),
+        Scenario("dev/phish/family-lost-phone", "dev", p, "family impersonation",
+                 "Message claiming to be the reader's son from a new account asking for an urgent transfer.",
+                 build("Jack <jack.temp.mail@mail-host.example>", "Hi Mum",
+                       "Hi Mum, it's me. I lost my phone so I'm emailing from a new account. "
+                       "I need to pay my rent today and my bank card is blocked. Can you transfer $1,800 "
+                       "to my flatmate's account? I'll pay you back next week.\n")),
+        Scenario("dev/phish/zh-relative-borrow", "dev", p, "Chinese family impersonation",
+                 "Message claiming to be a nephew with a new contact asking to borrow money urgently.",
+                 build("表弟阿杰 <ajie.new@mail-host.example>", "表哥，我是阿杰",
+                       "表哥，我手机丢了，先用这个邮箱联系你。我这边出了点急事需要用钱，"
+                       "能不能先帮我转两万到下面这个账户，过两天就还你。\n")),
+        Scenario("dev/phish/docusign-lookalike", "dev", p, "credential harvest",
+                 "E-signature notice using the DocuSign name from an unrelated domain.",
+                 build("DocuSign via Signing Service <notify@esign-notify.example>",
+                       "Completed: Please DocuSign Payroll_Update.pdf",
+                       "A document is waiting for your signature: Payroll_Update.pdf.\n",
+                       html='<p>Payroll_Update.pdf is waiting for your signature.</p>'
+                            '<p><a href="https://esign-notify.example/doc/review">Review document</a></p>')),
+        Scenario("dev/phish/manager-gift-card-favour", "dev", p, "impersonation",
+                 "Free-mail account using a manager's name asks for gift card codes.",
+                 build("Michael Turner <m.turner.manager@outlook.com>", "Are you free?",
+                       "Hi, are you free at the moment? I need a quick favour. Please buy three Google Play "
+                       "gift cards for a client and send me the codes as soon as possible. I'm in a "
+                       "meeting so I can't take calls.\n")),
+        Scenario("dev/legit/interview-invitation", "dev", s, "recruitment",
+                 "Genuine interview invitation from an employer's own domain, after an application.",
+                 build("Telstra Careers <careers@telstra.com>", "Interview invitation: Graduate Analyst",
+                       "Thank you for applying for the Graduate Analyst role. You have been selected for "
+                       "an interview. Please choose a time in the candidate portal.\n")),
+        Scenario("dev/legit/casual-shifts", "dev", s, "workplace notice",
+                 "Real university casual work notice with an hourly rate.",
+                 build("Monash Casual Jobs <casual.jobs@monash.edu>", "Casual exam supervisor shifts available",
+                       "Casual exam supervisor shifts are available in November at $38.50 per hour. "
+                       "Apply through the staff portal by 20 October.\n")),
+        Scenario("dev/legit/new-uni-email", "dev", s, "personal",
+                 "Family member sharing a new email address without asking for anything.",
+                 build("Jack Lee <jack.lee@student.monash.edu>", "My new email",
+                       "Hi Mum, this is my new uni email. I lost my phone last week but got a new one, "
+                       "so the number is the same. See you on Sunday!\n")),
+        Scenario("dev/legit/docusign-real", "dev", s, "e-signature",
+                 "Genuine DocuSign notice from DocuSign's own domain.",
+                 build("Ray White via DocuSign <dse_na2@docusign.net>", "Please DocuSign: Lease agreement",
+                       "Ray White sent you a document to review and sign.\n",
+                       html='<p><a href="https://na2.docusign.net/Signing/EmailStart.aspx?a=1">Review document</a></p>')),
+        Scenario("dev/legit/colleague-favour", "dev", s, "workplace request",
+                 "Colleague asks a small favour that involves no money.",
+                 build("Tom Nguyen <tom.nguyen@monash.edu>", "Quick favour",
+                       "Hi, are you free this afternoon? Could you do me a quick favour and print the "
+                       "tutorial handouts? They're in the shared drive. Thanks!\n")),
+        Scenario("dev/legit/gift-card-receipt", "dev", s, "receipt",
+                 "Genuine store receipt for a gift card purchase.",
+                 build("Apple <no_reply@email.apple.com>", "Your receipt from Apple",
+                       "Thank you for your purchase. App Store & iTunes Gift Card, $50.00. "
+                       "The gift card code was sent to the recipient's email address.\n")),
+    ]
+
+
+SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _holdout() + _holdout_round_two())
 
 
 # Scenario id -> why the current rules miss it. Remove an entry when it is fixed.
@@ -466,6 +541,12 @@ KNOWN_GAPS: dict[str, str] = {
     "dev/legit/newsletter-tracked-url-text":
         "Click tracking whose visible text is the final URL reads as an anchor mismatch; only Constant "
         "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
+    "dev/phish/reshipping-job": "No signal for unsolicited jobs that ask for ID or bank details.",
+    "dev/phish/zh-review-commission": "No signal for commission tasks that need money advanced (垫付).",
+    "dev/phish/family-lost-phone": "No signal for a relative's 'new account' asking for a transfer.",
+    "dev/phish/zh-relative-borrow": "No signal for a relative's 'new contact' asking to borrow money.",
+    "dev/phish/docusign-lookalike": "DocuSign is not a protected brand.",
+    "dev/phish/manager-gift-card-favour": "A gift-card favour scores only as a payment phrase.",
     "holdout/phish/crypto-investment": "Missed by the baseline rules (holdout: not used for tuning).",
     "holdout2/phish/remote-job-cheque": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout2/phish/zh-brushing-task": "Missed by the round-two rules (holdout2: not used for tuning).",
