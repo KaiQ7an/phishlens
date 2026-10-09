@@ -4,10 +4,11 @@ Every message here is invented for evaluation. Labels and splits were written
 before the analyzer was run on them:
 
 * ``dev`` scenarios may guide rule changes.
-* ``holdout`` and ``holdout2`` scenarios must never be used to tune rules;
+* ``holdout``, ``holdout2`` and ``holdout3`` scenarios must never be used to tune rules;
   they only measure whether a change generalises. Do not edit a holdout
-  scenario to make it pass. The categories ``holdout`` missed shaped the
-  round-two dev scenarios, so ``holdout2`` is the current unseen set.
+  scenario to make it pass. Each holdout's missed categories shaped the
+  next round of dev scenarios, so the newest set, ``holdout3``, is the
+  current unseen measure.
 
 A phishing scenario counts as detected when the verdict is suspicious or high.
 A legitimate scenario counts as correct only when the verdict is low.
@@ -64,7 +65,7 @@ def build(sender: str, subject: str, text: str, *, html: str | None = None, auth
     return msg.as_bytes()
 
 
-SPLITS = ("dev", "holdout", "holdout2")
+SPLITS = ("dev", "holdout", "holdout2", "holdout3")
 
 FAKE = b"PhishLens evaluation placeholder; not a real document or program.\n"
 
@@ -533,7 +534,112 @@ def _dev_round_three() -> list[Scenario]:
     ]
 
 
-SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _holdout() + _holdout_round_two())
+def _holdout_round_three() -> list[Scenario]:
+    """Added 2026-10-09 after the round-three rule changes, before running them.
+
+    Round-three dev categories followed the holdout2 misses, so this fresh set
+    is now the unseen measure. It deliberately mixes in categories no rule
+    round has targeted. Run once with fixed labels; never used for tuning."""
+    s, p = "legitimate", "phishing"
+    return [
+        Scenario("holdout3/phish/callback-antivirus", "holdout3", p, "callback phishing",
+                 "Fake antivirus renewal with no links, only a phone number to 'cancel'.",
+                 build("Norton Billing <billing@secure-renewals.example>", "Order confirmation #NT-88231",
+                       "Your Norton 360 subscription has been renewed for $399.99 and will be charged to your "
+                       "card on file. If you did not authorise this purchase, call our billing team on "
+                       "+1 (888) 555-0142 within 24 hours to request a refund.\n")),
+        Scenario("holdout3/phish/unpaid-toll", "holdout3", p, "payment lure",
+                 "Unpaid toll notice with a late fee, linking to an unrelated payment host.",
+                 build("Linkt <notice@toll-payments-au.example>", "Unpaid toll notice",
+                       "You have an unpaid toll of $12.40. Pay now to avoid a $50 late fee.\n",
+                       html='<p>You have an unpaid toll of $12.40.</p>'
+                            '<p><a href="https://toll-payments-au.example/pay">Pay now</a></p>')),
+        Scenario("holdout3/phish/zh-recall-compensation", "holdout3", p, "Chinese refund scam",
+                 "Fake shop customer service offering triple compensation for a 'recalled' product.",
+                 build("店铺客服 <kefu@shop-aftersale.example>", "关于您购买商品的召回赔偿",
+                       "您好，您在本店购买的商品因质量问题被召回，我们将为您办理三倍赔偿。"
+                       "请添加客服并提供银行卡信息，以便尽快为您退款。\n")),
+        Scenario("holdout3/phish/zh-lottery-tax", "holdout3", p, "Chinese prize scam",
+                 "Prize notice that requires paying 'tax' before collecting the winnings.",
+                 build("幸运抽奖中心 <prize@lucky-draw-center.example>", "恭喜您中奖",
+                       "恭喜您被抽中二等奖，奖金58,000元。按规定领奖前需先缴纳个人所得税2,000元，"
+                       "请于三日内完成缴纳，逾期视为放弃。\n")),
+        Scenario("holdout3/phish/wallet-airdrop", "holdout3", p, "crypto theft",
+                 "Airdrop claim asking for the wallet recovery phrase.",
+                 build("ETH Rewards <rewards@eth-airdrop-claim.example>", "Your airdrop is ready to claim",
+                       "You are eligible for 0.85 ETH in our community airdrop. Connect your wallet and enter "
+                       "your 12-word recovery phrase to claim it before the snapshot closes.\n")),
+        Scenario("holdout3/phish/salary-adjustment", "holdout3", p, "credential harvest",
+                 "'Salary adjustment letter' linking to a login page on an unrelated host.",
+                 build("Human Resources <hr@staff-hr-notices.example>", "2027 salary adjustment letter",
+                       "Your 2027 salary adjustment letter is now available. Sign in with your staff "
+                       "account to view it.\n",
+                       html='<p>Your salary adjustment letter is available.</p>'
+                            '<p><a href="https://staff-hr-notices.example/sso/login">View letter</a></p>')),
+        Scenario("holdout3/phish/disaster-donation", "holdout3", p, "charity scam",
+                 "Disaster appeal asking for donations in bitcoin.",
+                 build("Flood Relief Appeal <donate@flood-relief-fund.example>", "Help flood victims today",
+                       "Thousands of families have lost their homes. Every dollar helps. Donations are "
+                       "accepted in bitcoin to the wallet address below so funds arrive faster.\n")),
+        Scenario("holdout3/phish/zh-visa-cancellation", "holdout3", p, "Chinese government impersonation",
+                 "Fake immigration notice threatening visa cancellation unless a fine is paid.",
+                 build("澳大利亚移民局 <visa-office@au-immigration-notice.example>", "签证取消通知",
+                       "经核查，您的学生签证存在违规记录，将于48小时后被取消。如需申诉，请立即缴纳罚款"
+                       "并提供护照首页照片。\n")),
+        Scenario("holdout3/phish/onedrive-invoice", "holdout3", p, "credential harvest",
+                 "Invoice shared 'via OneDrive' linking to a host that uses the OneDrive name.",
+                 build("Accounts Receivable <ar@northside-supplies.example>", "Invoice 77120 shared with you",
+                       "Please find invoice 77120 shared with you via OneDrive.\n",
+                       html='<p><a href="https://onedrive-invoice-share.example/view/77120">View invoice</a></p>')),
+        Scenario("holdout3/phish/mailbox-quota-mismatch", "holdout3", p, "credential harvest",
+                 "Mailbox quota warning whose link text shows the university site but points elsewhere.",
+                 build("Mail Administrator <admin@quota-alerts.example>", "Mailbox storage almost full",
+                       "Your mailbox is 98% full. Increase your storage to keep receiving email.\n",
+                       html='<p>Your mailbox is 98% full.</p>'
+                            '<p><a href="https://quota-alerts.example/upgrade">https://my.monash.edu/mail</a></p>')),
+        Scenario("holdout3/legit/toll-invoice", "holdout3", s, "bill",
+                 "Real toll operator invoice linking to its own site.",
+                 build("Linkt <noreply@linkt.com.au>", "Your Linkt statement is ready",
+                       "Your monthly statement is ready. Your account will be debited automatically.\n",
+                       html='<p><a href="https://www.linkt.com.au/account">View statement</a></p>')),
+        Scenario("holdout3/legit/antivirus-renewal", "holdout3", s, "subscription notice",
+                 "Real vendor renewal reminder from its own domain.",
+                 build("Norton <noreply@norton.com>", "Your subscription renews soon",
+                       "Your Norton 360 subscription will renew on 1 December. You can turn off automatic "
+                       "renewal at any time in your Norton account.\n")),
+        Scenario("holdout3/legit/donation-receipt", "holdout3", s, "receipt",
+                 "Real charity donation receipt with a PDF.",
+                 build("Australian Red Cross <supporter@redcross.org.au>", "Thank you for your donation",
+                       "Thank you for your donation of $50 to the disaster relief appeal. Your tax receipt is "
+                       "attached.\n",
+                       attachments=(("receipt-2026-1009.pdf", "application", "pdf", FAKE),))),
+        Scenario("holdout3/legit/payslip-available", "holdout3", s, "workplace notice",
+                 "Real payslip notice pointing to the staff portal.",
+                 build("Monash Payroll <payroll@monash.edu>", "Your payslip is available",
+                       "Your payslip for the pay period ending 8 October is available in the staff portal.\n")),
+        Scenario("holdout3/legit/zh-card-spending", "holdout3", s, "Chinese bank notice",
+                 "Real bank spending alert.",
+                 build("中国银行 <notice@boc.cn>", "账户支出提醒",
+                       "您尾号1234的借记卡于10月9日支出人民币58.00元，余额请登录手机银行查询。"
+                       "如非本人操作，请拨打卡背面客服电话。\n")),
+        Scenario("holdout3/legit/visa-grant", "holdout3", s, "government notice",
+                 "Real government visa grant notice.",
+                 build("Department of Home Affairs <noreply@homeaffairs.gov.au>", "Visa grant notification",
+                       "Your Student visa (subclass 500) has been granted. Your grant letter is available in "
+                       "ImmiAccount.\n")),
+        Scenario("holdout3/legit/friend-dinner", "holdout3", s, "personal",
+                 "Friend asking about dinner from a free-mail account.",
+                 build("Lily Zhang <lily.zhang.92@gmail.com>", "Dinner Friday?",
+                       "Hey, are you free on Friday night? A few of us are going for hotpot in the city.\n")),
+        Scenario("holdout3/legit/exchange-withdrawal", "holdout3", s, "financial notice",
+                 "Real crypto exchange withdrawal confirmation.",
+                 build("CoinSpot <noreply@coinspot.com.au>", "Withdrawal processed",
+                       "Your withdrawal of 0.05 BTC has been processed. If you did not request this, "
+                       "contact support immediately.\n")),
+    ]
+
+
+SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _holdout() + _holdout_round_two() + _holdout_round_three())
 
 
 # Scenario id -> why the current rules miss it. Remove an entry when it is fixed.
@@ -544,4 +650,13 @@ KNOWN_GAPS: dict[str, str] = {
     "holdout/phish/crypto-investment": "Missed by the baseline rules (holdout: not used for tuning).",
     "holdout2/phish/remote-job-cheque": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout2/phish/esign-settlement": "Missed by the round-two rules (holdout2: not used for tuning).",
+    "holdout3/phish/callback-antivirus": "Missed by the round-three rules (holdout3: not used for tuning).",
+    "holdout3/phish/unpaid-toll": "Missed by the round-three rules (holdout3: not used for tuning).",
+    "holdout3/phish/zh-recall-compensation": "Missed by the round-three rules (holdout3: not used for tuning).",
+    "holdout3/phish/zh-lottery-tax": "Missed by the round-three rules (holdout3: not used for tuning).",
+    "holdout3/phish/wallet-airdrop": "Missed by the round-three rules (holdout3: not used for tuning).",
+    "holdout3/phish/salary-adjustment": "Missed by the round-three rules (holdout3: not used for tuning).",
+    "holdout3/phish/disaster-donation": "Missed by the round-three rules (holdout3: not used for tuning).",
+    "holdout3/phish/zh-visa-cancellation": "Missed by the round-three rules (holdout3: not used for tuning).",
+    "holdout3/phish/onedrive-invoice": "Missed by the round-three rules (holdout3: not used for tuning).",
 }
