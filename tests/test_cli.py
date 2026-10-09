@@ -97,3 +97,49 @@ def test_fifo_is_rejected_without_waiting_for_a_writer(tmp_path):
     assert result.stdout == ""
     assert "regular email file" in result.stderr
     assert "Traceback" not in result.stderr
+
+
+def _fixture_dir(fixture_path):
+    return fixture_path("clean_newsletter.eml").parent
+
+
+def test_directory_gives_a_summary_sorted_by_score(fixture_path, capsys):
+    assert main(["analyze", str(_fixture_dir(fixture_path))]) == 0
+    out = capsys.readouterr().out
+    assert "6 analysed, 0 not analysed" in out
+    rows = [line for line in out.splitlines() if line.startswith("  HIGH RISK") or line.startswith("  LOW RISK")]
+    assert rows[0].split()[2] == "100" and rows[-1].startswith("  LOW RISK")
+    assert "high 5 · suspicious 0 · low 1 · not analysed 0" in out
+
+
+def test_several_files_give_json_summary(fixture_path, capsys):
+    paths = [str(fixture_path("clean_newsletter.eml")), str(fixture_path("dmarc_spoof.eml"))]
+    assert main(["analyze", *paths, "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["summary"] == {"high": 1, "suspicious": 0, "low": 1, "analysed": 2, "not_analysed": 0}
+    assert [r["level"] for r in data["reports"]] == ["low", "high"] and data["errors"] == []
+
+
+def test_batch_fail_on_and_errors(fixture_path, tmp_path, capsys):
+    clean = str(fixture_path("clean_newsletter.eml"))
+    spoof = str(fixture_path("dmarc_spoof.eml"))
+    assert main(["analyze", clean, spoof, "--fail-on", "high"]) == 2
+    assert main(["analyze", clean, clean, "--fail-on", "high"]) == 0
+    # A file that cannot be analysed makes the run incomplete, which takes precedence.
+    assert main(["analyze", spoof, str(tmp_path / "missing.eml"), "--fail-on", "high"]) == 1
+    captured = capsys.readouterr()
+    assert "cannot read" in captured.err and "1 analysed, 1 not analysed" in captured.out
+
+
+def test_directory_without_eml_files(tmp_path, capsys):
+    (tmp_path / "notes.txt").write_text("not an email")
+    assert main(["analyze", str(tmp_path)]) == 1
+    assert "no .eml files" in capsys.readouterr().err
+
+
+def test_batch_summary_escapes_untrusted_filenames(fixture_path, tmp_path, capsys):
+    target = tmp_path / "evil\x1b[2J.eml"
+    target.write_bytes(fixture_path("dmarc_spoof.eml").read_bytes())
+    assert main(["analyze", str(tmp_path)]) == 0
+    out = capsys.readouterr().out
+    assert "\x1b" not in out and "evil\\x1b[2J.eml" in out
