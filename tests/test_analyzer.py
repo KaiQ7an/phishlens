@@ -230,3 +230,36 @@ def test_deadlines_create_time_pressure(body):
 def test_prizes_are_windfalls():
     for body in ("Congratulations, you have won!", "恭喜您抽中大奖。"):
         assert "content.windfall" in {f.code for f in analyze(_email("Promo", "mail-host.example", body)).findings}
+
+
+@pytest.mark.parametrize("code, body", [
+    ("content.off_channel", "Our hiring manager interviews over WhatsApp."),
+    ("content.off_channel", "请添加HR微信获取岗位说明。"),
+    ("content.remote_access", "Install AnyDesk so we can check your account."),
+    ("content.remote_access", "请下载会议软件并开启屏幕共享。"),
+    ("content.cold_open", "Sorry to bother you, I think I got the wrong contact."),
+    ("content.investment", "I've been earning 25% a month."),
+    ("content.investment", "上个月收益达到40%。"),
+    ("content.payment", "Please make a payment of $18,900 today."),
+    ("content.payment", "A $2.40 handling charge must be paid."),
+    ("content.payment", "你先付押金到我账户。"),
+    ("content.remote_deal", "我现在在外地工作回不去。"),
+    ("content.account_threat", "Renew now or your website will be deleted."),
+    ("content.secrecy", "Between you and me for now, please."),
+    ("content.secrecy", "调查期间不要和任何人说起此事。"),
+])
+def test_round_five_signals(code, body):
+    assert code in {f.code for f in analyze(_email("Sender", "mail-host.example", body)).findings}
+
+
+@pytest.mark.parametrize("body", [
+    "Your order total was $54.20 including a $5.00 delivery fee.",  # a receipt, not a request
+    "Thanks for your payment. You paid $480 on 1 October.",
+])
+def test_receipts_are_not_payment_requests(body):
+    assert "content.payment" not in {f.code for f in analyze(_email("Store", "mail-host.example", body)).findings}
+
+
+def test_a_parcel_with_a_payment_request_is_suspicious_but_a_delivery_notice_is_not():
+    assert analyze(_email("Courier", "mail-host.example", "Your parcel is held. Pay $3.15 to rebook.")).level != "low"
+    assert analyze(_email("Courier", "mail-host.example", "Your parcel was delivered today.")).level == "low"
