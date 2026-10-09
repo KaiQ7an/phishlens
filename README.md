@@ -5,6 +5,10 @@ Give it an exported `.eml` file and it reports sender inconsistencies, misleadin
 links, risky attachment types, and social-engineering language. Every finding
 includes a reason, evidence when available, and its contribution to the score.
 
+It explains recognised warning signs; it is not a spam filter. On synthetic
+scams written after the rules, it flagged 8–50% on first run, so a low score
+is not a sign that an email is safe (see [Evaluation](#evaluation)).
+
 The current MVP uses Python's standard library, with no runtime dependencies or
 API keys. It includes English and Chinese rules and six synthetic sample emails.
 
