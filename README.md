@@ -127,7 +127,7 @@ PhishLens report: tests/fixtures/zh_fake_police.eml
   Verdict : HIGH RISK  (score 80/100)
 
 Findings
-  [HIGH   +30] Claims to be police or government but was not sent from a government domain
+  [HIGH   +30] Claims to be police, a tax office or government but was not sent from a government domain
                evidence: '公安', '警官', '领事馆', '涉嫌', '洗钱'; sender cn-consulate-service.example
   [HIGH   +30] Tells you to keep it secret or cut off contact
                evidence: '保密', '切勿告知'

@@ -31,7 +31,12 @@ SIGNALS: tuple[Signal, ...] = (
     Signal("content.payment", "medium", "Asks for money or an unusual payment method", (
         "gift card", "wire transfer", "bank transfer", "bitcoin", "western union", "processing fee",
         "redelivery fee", "customs fee", "clearance fee", "bank details", "new account details",
+        "usdt", "crypto wallet",
         "转账", "汇款", "保证金", "手续费", "安全账户", "比特币", "清关费", "西联", "收款账户", "银行账户变更",
+    )),
+    Signal("content.investment", "medium", "Promises guaranteed or unusually high investment returns", (
+        "guaranteed return", "guaranteed profit", "guaranteed income", "double your money",
+        "稳赚", "保本保息", "高额回报", "带单", "日收益",
     )),
     Signal("content.remote_deal", "medium", "Wants money from someone you cannot meet or inspect", (
         "currently overseas", "unable to show you", "send you the keys", "mail you the keys",
@@ -44,7 +49,8 @@ SIGNALS: tuple[Signal, ...] = (
     )),
     Signal("content.authority", "medium", "Claims to be police, a court or a government office", (
         "police", "embassy", "consulate", "arrest warrant", "money laundering", "under investigation", "interpol",
-        "公安", "警察", "警官", "大使馆", "领事馆", "海关", "涉嫌", "洗钱", "通缉", "立案", "办案",
+        "taxation office", "tax office", "internal revenue service", "hmrc",
+        "公安", "警察", "警官", "大使馆", "领事馆", "海关", "涉嫌", "洗钱", "通缉", "立案", "办案", "税务局", "税务总局",
     )),
     Signal("content.secrecy", "high", "Tells you to keep it secret or cut off contact", (
         "do not tell", "don't tell", "keep this confidential", "do not contact your family",

@@ -377,14 +377,10 @@ KNOWN_GAPS: dict[str, str] = {
     "dev/legit/newsletter-tracked-url-text":
         "Click tracking whose visible text is the final URL reads as an anchor mismatch; only Constant "
         "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
-    "dev/phish/tax-refund-bank-details": "Tax offices are not treated as authorities, so a refund lure from a non-government domain is not escalated.",
-    "dev/phish/crypto-guaranteed-returns": "No signal for promised investment returns; USDT is not a payment phrase.",
-    "dev/phish/zh-investment-group": "No signal for promised investment returns (稳赚不赔, 带单).",
     "dev/phish/docm-enable-content": "Instructions to enable macros are not recognised; a macro document alone is medium.",
     "dev/phish/xlsm-purchase-order": "A macro workbook from an unknown sender scores only medium.",
     "dev/phish/facebook-page-violation": "No signal for account takedown threats; Meta brands are not protected.",
     "dev/phish/instagram-badge-lookalike": "Instagram is not a protected brand, so the lookalike domain is not recognised.",
-    "holdout/phish/tax-refund": "Missed by the baseline rules (holdout: not used for tuning).",
     "holdout/phish/crypto-investment": "Missed by the baseline rules (holdout: not used for tuning).",
     "holdout/phish/macro-invoice": "Missed by the baseline rules (holdout: not used for tuning).",
     "holdout/phish/social-copyright-appeal": "Missed by the baseline rules (holdout: not used for tuning).",

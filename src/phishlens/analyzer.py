@@ -244,7 +244,7 @@ def _content_findings(email: ParsedEmail, visible_html_text: str) -> list[Findin
         evidence = ", ".join(f"'{m}'" for m in matched[:5])
         if signal.code == "content.authority" and email.sender and not is_government(email.sender.domain):
             findings.append(Finding("content.authority_non_gov", "high",
-                                    "Claims to be police or government but was not sent from a government domain",
+                                    "Claims to be police, a tax office or government but was not sent from a government domain",
                                     f"{evidence}; sender {email.sender.domain}"))
         else:
             findings.append(Finding(signal.code, signal.severity, signal.title, evidence))

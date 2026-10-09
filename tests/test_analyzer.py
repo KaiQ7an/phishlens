@@ -124,3 +124,19 @@ def test_product_names_in_domains_are_brand_keywords():
     assert find_lookalike("onedrive-files.example").imitates == "microsoft.com"
     assert find_lookalike("australiapost-tracking.example").imitates == "auspost.com.au"
     assert find_lookalike("my-sharepoint.example").technique == "brand-keyword"
+
+
+def test_tax_office_claims_from_non_government_domains_are_escalated():
+    report = analyze(_email("Australian Taxation Office", "refund-centre.example", "You are owed a refund."))
+    assert "content.authority_non_gov" in {f.code for f in report.findings}
+    report = analyze(_email("Australian Taxation Office", "ato.gov.au", "Your return has been processed."))
+    assert "content.authority_non_gov" not in {f.code for f in report.findings}
+
+
+def test_guaranteed_returns_are_investment_lures():
+    for body in ("Guaranteed returns of 30% per month.", "导师带单，稳赚不赔。"):
+        codes = {f.code for f in analyze(_email("Mentor", "mail-host.example", body)).findings}
+        assert "content.investment" in codes, body
+    codes = {f.code for f in analyze(_email("Broker", "mail-host.example",
+                                            "Your statement shows portfolio returns for September.")).findings}
+    assert "content.investment" not in codes
