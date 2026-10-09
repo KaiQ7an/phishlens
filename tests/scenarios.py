@@ -411,6 +411,120 @@ def _dev_round_five() -> list[Scenario]:
     ]
 
 
+def _dev_round_six() -> list[Scenario]:
+    """Added 2026-10-09. Categories follow the holdout5 misses; two
+    independently worded versions per category (-a/-b), plus legitimate
+    messages about duties, refunds, bookings, loans and legal matters."""
+    s, p = "legitimate", "phishing"
+    return [
+        Scenario("dev/phish/overpayment-a", "dev", p, "refund scam",
+                 "Claims a refund was sent twice and asks for one back.",
+                 build("Customer Accounts <accounts@billing-correction.example>", "Duplicate refund issued",
+                       "Our system issued your $650 refund twice by mistake. Please send back the duplicate "
+                       "amount of $650 by bank transfer, or we will refer the matter to a debt collector.\n")),
+        Scenario("dev/phish/overpayment-b", "dev", p, "refund scam",
+                 "Seller 'overpaid' the reader and wants the excess returned.",
+                 build("Marketplace Buyer <buyer.jason@mail-host.example>", "Overpaid for the bike",
+                       "Hi, I accidentally overpaid you by $900 for the bike. Can you refund the extra to my "
+                       "cousin's account today? My bank says it will take weeks otherwise.\n")),
+        Scenario("dev/phish/money-mule-a", "dev", p, "money mule",
+                 "Payment processing 'job' that receives funds and forwards most of them.",
+                 build("Payments Team <jobs@intl-payment-agents.example>", "Payment agent position",
+                       "As our local payment agent you will receive customer payments into your account. "
+                       "Keep 10% as your commission and forward the remainder to our supplier within a day.\n")),
+        Scenario("dev/phish/money-mule-b", "dev", p, "money mule",
+                 "Chinese 'part-time' job receiving and passing on money.",
+                 build("跨境结算 <hr@cross-border-settle.example>", "兼职代收款",
+                       "招聘兼职代收款人员：客户货款会先打到你的银行卡，你留下5%作为报酬，"
+                       "剩余的钱当天转到公司指定账户即可。\n")),
+        Scenario("dev/phish/gift-card-photos-a", "dev", p, "impersonation",
+                 "Free-mail 'principal' wants gift cards with photos of the back.",
+                 build("Principal Helen Ward <principal.h.ward@gmail.com>", "Need your help",
+                       "I'm tied up in meetings. Please pick up five $100 iTunes gift cards for staff awards, "
+                       "scratch off the silver strip and email me photos of the back of each card.\n")),
+        Scenario("dev/phish/gift-card-photos-b", "dev", p, "Chinese impersonation",
+                 "Free-mail 'manager' wants gift cards and pictures of the codes.",
+                 build("张总 <zhang.manager.office@163.com>", "帮我办点事",
+                       "我在开会不方便接电话。帮我买几张京东E卡给客户，刮开后拍照发给我，回头报销。\n")),
+        Scenario("dev/phish/legal-callback-a", "dev", p, "callback phishing",
+                 "Court action threat with a phone number to settle.",
+                 build("Recovery Unit <notice@court-action-desk.example>", "Court proceedings to commence",
+                       "Court proceedings will begin against you for an unpaid debt unless you settle it. "
+                       "Phone our case officer on 02 5550 7788 before 5pm.\n")),
+        Scenario("dev/phish/legal-callback-b", "dev", p, "Chinese callback phishing",
+                 "Lawsuit threat with a number to call.",
+                 build("法务部 <fawu@debt-legal-notice.example>", "起诉通知",
+                       "您有一笔欠款逾期未还，我司将依法向法院起诉。如有异议，请于今日致电 021-5550-3366。\n")),
+        Scenario("dev/phish/booking-card-a", "dev", p, "booking scam",
+                 "Hotel booking needs card details verified or it will be cancelled.",
+                 build("Reservations Team <guest@stay-verify-desk.example>", "Your reservation is at risk",
+                       "We could not charge the card for your upcoming stay. Verify your card details "
+                       "within 24 hours or the reservation will be cancelled.\n",
+                       html='<p><a href="https://stay-verify-desk.example/card">Verify card</a></p>')),
+        Scenario("dev/phish/booking-card-b", "dev", p, "booking scam",
+                 "Airline ticket needs card details updated to avoid cancellation.",
+                 build("Ticketing <tickets@flight-confirm-centre.example>", "Payment failed for your ticket",
+                       "Payment for ticket 0816-22 did not go through. Update your card details today or the "
+                       "ticket will be canceled.\n",
+                       html='<p><a href="https://flight-confirm-centre.example/pay">Update card</a></p>')),
+        Scenario("dev/phish/zh-credit-threat-a", "dev", p, "Chinese credit scam",
+                 "Fake platform says an old loan account affects credit unless funds are moved.",
+                 build("征信服务中心 <help@credit-repair-cn.example>", "征信异常提醒",
+                       "您名下有未注销的网贷账户，将影响个人征信。请按客服指引把资金转入监管账户，"
+                       "核验后原路退回。\n")),
+        Scenario("dev/phish/zh-credit-threat-b", "dev", p, "Chinese credit scam",
+                 "Fake app support says a student account must be closed to protect credit.",
+                 build("平台客服 <kefu@campus-loan-help.example>", "学生账户关闭通知",
+                       "因政策调整，学生用户账户需要关闭，否则征信会留下不良记录。"
+                       "关闭前需将额度内的钱转到我们的安全账户进行清零。\n")),
+        Scenario("dev/phish/customs-duty-a", "dev", p, "delivery scam",
+                 "Parcel held until import duty is paid on a linked page.",
+                 build("Customs Clearance <clearance@import-duty-pay.example>", "Import duty payable",
+                       "Your parcel from overseas is being held until import duty of $8.70 is paid.\n",
+                       html='<p><a href="https://import-duty-pay.example/duty">Pay duty</a></p>')),
+        Scenario("dev/phish/customs-duty-b", "dev", p, "Chinese delivery scam",
+                 "Chinese parcel notice that requires paying tax before release.",
+                 build("跨境物流 <notice@global-parcel-tax.example>", "包裹待缴税",
+                       "您的海外包裹需缴纳进口税费后才能放行，请尽快在页面完成支付。\n"
+                       "https://global-parcel-tax.example/tax\n")),
+        Scenario("dev/legit/abf-duty-notice", "dev", s, "government notice",
+                 "Real border agency import duty notice.",
+                 build("Australian Border Force <noreply@abf.gov.au>", "Import declaration lodged",
+                       "An import declaration has been lodged for your shipment. Duty and GST will be "
+                       "collected by your courier on delivery.\n")),
+        Scenario("dev/legit/bank-refund-reversal", "dev", s, "bank notice",
+                 "Real bank telling a customer a duplicate refund was reversed automatically.",
+                 build("CommBank <notifications@commbank.com.au>", "Refund correction",
+                       "A duplicate refund of $650 was credited to your account in error and has been "
+                       "reversed. No action is needed.\n")),
+        Scenario("dev/legit/hotel-card-update", "dev", s, "booking",
+                 "Real booking platform asking to update a card inside its own site.",
+                 build("Booking.com <noreply@booking.com>", "Update your payment details",
+                       "The property couldn't charge your card. Update your card details in your Booking.com "
+                       "account to keep your reservation.\n",
+                       html='<p><a href="https://secure.booking.com/mytrips.html">Manage booking</a></p>')),
+        Scenario("dev/legit/help-debt-statement", "dev", s, "government notice",
+                 "Real government student loan statement.",
+                 build("Study Assist <noreply@studyassist.gov.au>", "Your HELP debt statement",
+                       "Your HELP debt statement is available in myGov. Repayments are made through the "
+                       "tax system; no payment is needed now.\n")),
+        Scenario("dev/legit/church-gift-card-drive", "dev", s, "community notice",
+                 "Real community gift card drive with drop-off.",
+                 build("St Mary's Parish <office@stmarysclayton.org.au>", "Christmas gift card drive",
+                       "This year we are collecting supermarket gift cards for families in need. Please "
+                       "drop them in the box at the parish office.\n")),
+        Scenario("dev/legit/legal-firm-update", "dev", s, "legal notice",
+                 "Real law firm update to its own client.",
+                 build("Slater and Gordon <updates@slatergordon.com.au>", "Update on your matter",
+                       "Your lawyer has filed the documents with the court. We will call you after the "
+                       "hearing on 3 November.\n")),
+        Scenario("dev/legit/agent-commission", "dev", s, "workplace notice",
+                 "Real sales commission notice.",
+                 build("Monash Bookshop <payroll@monash.edu>", "Commission paid",
+                       "Your commission of $120 for September has been paid with your salary.\n")),
+    ]
+
+
 def _holdout() -> list[Scenario]:
     s, p = "legitimate", "phishing"
     return [
@@ -1060,7 +1174,7 @@ def _holdout_round_five() -> list[Scenario]:
     ]
 
 
-SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _dev_round_five() + _holdout() + _holdout_round_two() + _holdout_round_three() + _holdout_round_four() + _holdout_round_five())
+SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _dev_round_five() + _dev_round_six() + _holdout() + _holdout_round_two() + _holdout_round_three() + _holdout_round_four() + _holdout_round_five())
 
 
 # Scenario id -> why the current rules miss it. Remove an entry when it is fixed.
@@ -1070,6 +1184,19 @@ KNOWN_GAPS: dict[str, str] = {
         "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
     "dev/phish/bonus-letter-login": "A 'log in to view' request with a link to the sender's own login page reads like "
                                     "a genuine HR portal notice; telling them apart needs sender reputation.",
+    "dev/phish/overpayment-a": "Requests to send back a duplicate or excess refund are not recognised.",
+    "dev/phish/overpayment-b": "Requests to refund an 'overpayment' are not recognised.",
+    "dev/phish/money-mule-a": "Receiving money and forwarding the remainder is not recognised.",
+    "dev/phish/money-mule-b": "Receiving money and forwarding the remainder (剩余的钱转到) is not recognised.",
+    "dev/phish/gift-card-photos-a": "Requests for photos of gift card backs are not recognised as code requests.",
+    "dev/phish/gift-card-photos-b": "Requests to photograph scratched cards (刮开后拍照) are not recognised.",
+    "dev/phish/legal-callback-a": "Legal threats with a phone number are not callback phishing unless a charge is mentioned.",
+    "dev/phish/legal-callback-b": "Lawsuit threats (起诉) with a phone number are not recognised.",
+    "dev/phish/booking-card-a": "Requests to verify card details are not credential requests; cancellation threats are not recognised.",
+    "dev/phish/booking-card-b": "Requests to update card details are not credential requests; cancellation threats are not recognised.",
+    "dev/phish/zh-credit-threat-a": "Credit-record threats (影响征信) and supervised accounts (监管账户) are not recognised.",
+    "dev/phish/zh-credit-threat-b": "Credit-record threats (征信) score only one payment signal.",
+    "dev/phish/customs-duty-a": "Import duty is not recognised as a payment request.",
     "holdout2/phish/remote-job-cheque": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout2/phish/esign-settlement": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout3/phish/unpaid-toll": "Missed by the round-three rules (holdout3: not used for tuning).",
