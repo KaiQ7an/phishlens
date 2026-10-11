@@ -51,6 +51,14 @@ PhishLens 是离线 `.eml` 钓鱼迹象分析 CLI，输出可解释的风险分�
 
 已知缺口都在 `KNOWN_GAPS`，以 strict xfail 运行；修好后删除对应条目。**是否继续短语/意图规则轮次，或改用其他方法（例如基于有许可的公开语料的可选本地统计模型），需要用户决定**；在此之前不建议继续加规则追 holdout。
 
+### 可选统计模型（实验性，2026-10-11）
+
+`src/phishlens/model.py`（标准库逻辑回归，哈希词特征与中文二元组）与 `scripts/train_model.py`。默认关闭，`--model FILE` 才启用；模型文件只存哈希索引的权重，不含训练邮件中的词；训练脚本拒绝把模型写进仓库。`scripts/evaluate.py --model FILE` 可评估合成场景。
+
+经用户同意下载的语料放在仓库外 `~/Datasets/phishlens/`：`nazario/`（Jose Nazario 钓鱼语料 2015–2025，CC BY 4.0，使用时需署名）与 `spamassassin/`（20030228 easy_ham、easy_ham_2、hard_ham，无明确许可，仅本机用于过滤器开发，**不得分发或入库**）。已训练的 `model-v1.json`、`model-v2.json` 也在该目录。
+
+结果：仅用公开语料时，语料测试集（2023–2025 钓鱼）召回 97%、误报 0.4%，但在合成 dev 上把 38/55 封正常邮件判为钓鱼——公开正常邮件是 2002–2003 年的邮件列表，模型主要学到“新旧邮件”的差别。加入 dev 场景 ×30、用 dev 交叉拟合定阈值（0.985）后变得保守，与规则合用时在 holdout 上只多检出 1 封、多误报 1 封。缺的是现代正常邮件语料；在找到合适来源前不建议使用模型。曾在 scratchpad 实验中看到阈值 0.9 时 holdout 表现更好，但那是看着 holdout 选的阈值，不能作为结论。
+
 ## 模块地图
 
 | 模块 / 目录 | 责任 |
@@ -63,9 +71,11 @@ PhishLens 是离线 `.eml` 钓鱼迹象分析 CLI，输出可解释的风险分�
 | `analyzer.py` / `scoring.py` | 组合发现、校准条件、评分与风险等级 |
 | `display.py` / `report.py` | 安全转义、文本与 JSON 报告 |
 | `cli.py` / `__main__.py` | 安装命令、参数、退出码与批量（多文件/目录）汇总 |
+| `model.py` | 可选统计模型：特征、训练、加载与解释（实验性） |
 | `intel.py` | 离线接口占位；尚无外部信誉查询 |
 | `tests/` | 合成 fixtures 与回归测试；`test_evaluate.py` 检查评估脚本 |
 | `tests/scenarios.py` / `scripts/evaluate.py` | 224 个已标注合成场景（dev 与 holdout–holdout6）、`KNOWN_GAPS`、按集合及 variant/new 的评估 |
+| `scripts/train_model.py` | 在仓库外语料上训练可选模型，按年份切分测试，可加入 dev 场景并交叉拟合阈值 |
 | `scripts/verify_distribution.py` | 检出目录外新环境中的 wheel/sdist 安装与 CLI 检查 |
 | `.github/workflows/ci.yml` | 跨版本/平台测试、构建和普通 CI 构件；不发布版本 |
 
@@ -105,13 +115,13 @@ python scripts/verify_distribution.py --dist-dir "$phishlens_dist_dir" --build-d
 ## 本轮最终验证记录
 
 - 代码提交截至 `f7dd2a7`，本文件所在文档提交之后推送到 `origin/main`。
-- Python 3.14.8 重装 wheel 后：**728 passed, 26 xfailed**（xfail 为已记录的已知缺口）。
+- Python 3.14.8 重装 wheel 后：**746 passed, 26 xfailed**（xfail 为已记录的已知缺口）。
 - wheel/sdist 构建、`twine check` 及仓库外两个新环境中的离线包检查（含目录批量分析）全部通过。
 - 六封公开 fixture：正常邮件 0；五封钓鱼均为 high；README 示例输出已与实际输出核对。
 - GitHub Actions：截至提交 `2ca3f87` 的 CI #26 及之前各次运行通过（已通过公开 API 核对）；#16 曾因 Windows 不允许文件名含控制字符而失败，#17 已跳过该用例并通过。之后的推送需再次核对。
 
 ## 下一步优先级
 
-1. 与用户确认检测策略：停止追 holdout 的规则轮次，或研究其他方法（例如可选的本地统计模型，训练数据必须有许可且不入库）。在决定前，可做的工作是提高精确率（更多误报探针）与可用性。
+1. 统计模型缺现代正常邮件语料。需要用户决定数据来源：继续寻找有许可的现代语料，或在用户明确同意下仅在本机使用用户自己导出的邮件训练（绝不入库）；否则保持模型为实验性、默认关闭。
 2. 明确许可证，完成陌生用户安装和报告理解的最终检查，再单独执行正式发布步骤。正式发布仍保持延后。
 3. 批量分析与自定义品牌（`--brands`）已完成。后续可研究更完整的离线域名数据、可配置语言规则和报告对比。公开 Web 服务或外部信誉查询属于新范围，不能悄悄加入当前离线 CLI。

@@ -323,9 +323,53 @@ shows the final URL as its text, are listed in `KNOWN_GAPS` and run as strict
 expected failures, so a fix or regression is reported by the test suite.
 These are small synthetic sets, not measurements on real mail.
 
+## Optional statistical model (experimental)
+
+PhishLens can add a second opinion from a logistic-regression model over
+hashed words and Chinese character pairs, written with the standard library.
+It is off by default and no model is distributed. Train one locally, outside
+the repository, and pass it with `--model`:
+
+```bash
+python -I scripts/train_model.py \
+    --phishing ~/Datasets/phishlens/nazario/phishing-20* \
+    --legitimate ~/Datasets/phishlens/spamassassin/extracted/*ham* \
+    --test-from-year 2023 --dev-scenarios 30 --out ~/Datasets/phishlens/model.json
+phishlens analyze message.eml --model ~/Datasets/phishlens/model.json
+```
+
+The model adds one finding: high risk when its score reaches the model's
+threshold, otherwise an informational score, with the message's most
+phishing-like words as evidence. Model files store weights by feature hash, so
+they contain no words from the training mail; the training script refuses to
+write a model inside the repository. `scripts/evaluate.py --model FILE` scores
+the synthetic scenarios with the model applied.
+
+Experiment, 2026-10-11, with phishing from the [Nazario phishing
+corpus](https://monkey.org/~jose/phishing/) (2015–2025, 3,466 messages, by
+Jose Nazario, CC BY 4.0) and legitimate mail from the [SpamAssassin public
+corpus](https://spamassassin.apache.org/old/publiccorpus/) (easy and hard ham,
+4,150 messages, 2002–2003; no explicit licence, used locally for filter
+development as its maintainer intends and not redistributed):
+
+| Model | Corpus test: phishing 2023–2025 detected | Corpus test: legitimate flagged | Synthetic dev: legitimate flagged | Synthetic dev: phishing detected |
+| --- | ---: | ---: | ---: | ---: |
+| Corpora only, threshold 0.50 | 97% | 0.4% | 38 / 55 | 58 / 65 |
+| Plus dev scenarios ×30, threshold 0.985 from dev cross-fitting | 43% | 0% | 2 / 55 (out of fold) | 6 / 65 (out of fold) |
+
+The near-perfect corpus result does not carry over. The public legitimate
+mail is twenty-year-old mailing-list traffic, so the first model mostly
+learned "old list mail versus modern mail" and flagged most of the synthetic
+legitimate notices, receipts and alerts. Adding the 120 synthetic dev
+scenarios and setting the threshold on dev scenarios the model had not seen
+made it conservative: with the rules, it added one holdout detection and one
+holdout false alarm. What is missing is modern legitimate mail; until a
+suitable corpus is available, the model is not recommended for use.
+
 ## Safety model and limitations
 
-- Analysis reads only the file you provide. There is no inbox connection,
+- Analysis reads only the files you provide (emails, and optional brand or
+  model files). There is no inbox connection,
   telemetry, DNS lookup, URL fetch, or reputation-service request.
 - HTML is parsed as text; it is not rendered in a browser and scripts are not
   executed. Links and form destinations are extracted without being visited.
@@ -364,7 +408,7 @@ python -m pip install '.[dev]'
 python -m pytest -q
 ```
 
-The current suite has 754 tests (including 26 expected failures for known
+The current suite has 772 tests (including 26 expected failures for known
 gaps) for message parsing, input limits, malformed MIME,
 text decoding, authentication-header ambiguity, domains, links, inline/container
 attachments, language signals, scoring, mailing-route boundaries, safe report
@@ -433,6 +477,8 @@ phishlens --version
   usability review. Tagged releases and PyPI publication remain deferred.
 - **Later:** broader domain data and configurable language rules, plus report
   comparison. Batch analysis and custom protected brands are available now.
+- **Experimental:** an optional local statistical model (see above); it needs
+  modern legitimate training mail before it is useful.
 - **Optional future work:** explicit opt-in reputation lookups with caching and
   clear disclosure of submitted URLs/hashes. `intel.py` currently contains an
   interface stub only; external lookups are not implemented.
