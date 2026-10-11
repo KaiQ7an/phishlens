@@ -26,6 +26,7 @@ sys.path.insert(0, str(ROOT / "tests"))
 
 from phishlens.analyzer import analyze  # noqa: E402
 from phishlens.message import parse_bytes  # noqa: E402
+from phishlens.model import Model, load_model  # noqa: E402
 from scenarios import SCENARIOS, SPLITS, Scenario  # noqa: E402
 
 
@@ -45,10 +46,10 @@ class Outcome:
         return self.flagged == (self.scenario.label == "phishing")
 
 
-def run() -> list[Outcome]:
+def run(model: Model | None = None) -> list[Outcome]:
     outcomes = []
     for scenario in SCENARIOS:
-        report = analyze(parse_bytes(scenario.raw), source=scenario.id)
+        report = analyze(parse_bytes(scenario.raw), source=scenario.id, model=model)
         outcomes.append(Outcome(scenario, report.level, report.score,
                                 tuple(f.code for f in report.findings)))
     return outcomes
@@ -141,8 +142,9 @@ def main(argv: list[str] | None = None) -> int:
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--markdown", action="store_true", help="print a Markdown metrics table")
     group.add_argument("--json", action="store_true", help="print machine-readable results")
+    parser.add_argument("--model", metavar="FILE", help="also apply a statistical model (scripts/train_model.py)")
     args = parser.parse_args(argv)
-    outcomes = run()
+    outcomes = run(load_model(args.model) if args.model else None)
     print(to_markdown(outcomes) if args.markdown else to_json(outcomes) if args.json else to_text(outcomes))
     return 0
 

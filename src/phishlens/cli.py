@@ -11,6 +11,7 @@ from . import __version__
 from .analyzer import Report, analyze_file
 from .display import json_display, terminal_text
 from .domains import load_brand_file
+from .model import Model, ModelError, load_model
 from .message import DEFAULT_MAX_BYTES, EmailInputError
 from .report import to_dict, to_json, to_text
 
@@ -43,6 +44,8 @@ def build_parser() -> argparse.ArgumentParser:
                          help="exit with status 2 when a verdict reaches this level")
     analyze.add_argument("--brands", metavar="FILE",
                          help='JSON file of extra protected brands, e.g. {"acme": ["acme.com"]}')
+    analyze.add_argument("--model", metavar="FILE",
+                         help="statistical model trained with scripts/train_model.py (optional)")
     return parser
 
 
@@ -65,9 +68,10 @@ def _expand(paths: list[str]) -> tuple[list[str], list[str], bool]:
     return files, errors, batch
 
 
-def _analyse(path: str, max_bytes: int, brands: dict[str, tuple[str, ...]] | None) -> Report | str:
+def _analyse(path: str, max_bytes: int, brands: dict[str, tuple[str, ...]] | None,
+             model: Model | None) -> Report | str:
     try:
-        return analyze_file(path, max_bytes=max_bytes, brands=brands)
+        return analyze_file(path, max_bytes=max_bytes, brands=brands, model=model)
     except OSError as error:
         return f"phishlens: cannot read {terminal_text(path)}: {terminal_text(str(error.strerror or error))}"
     except EmailInputError as error:
@@ -113,10 +117,22 @@ def main(argv: list[str] | None = None) -> int:
             print(f"phishlens: invalid brands file {terminal_text(args.brands)}: {terminal_text(str(error))}",
                   file=sys.stderr)
             return 1
+    model = None
+    if args.model:
+        try:
+            model = load_model(args.model)
+        except OSError as error:
+            print(f"phishlens: cannot read model {terminal_text(args.model)}: "
+                  f"{terminal_text(str(error.strerror or error))}", file=sys.stderr)
+            return 1
+        except ModelError as error:
+            print(f"phishlens: invalid model {terminal_text(args.model)}: {terminal_text(str(error))}",
+                  file=sys.stderr)
+            return 1
     files, errors, batch = _expand(args.paths)
     reports: list[Report] = []
     for path in files:
-        result = _analyse(path, max_bytes, brands)
+        result = _analyse(path, max_bytes, brands, model)
         if isinstance(result, str):
             errors.append(result)
         else:

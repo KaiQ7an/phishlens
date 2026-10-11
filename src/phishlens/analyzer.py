@@ -16,6 +16,7 @@ from .domains import (brand_terms, custom_brands, find_lookalike, is_government,
 from .intel import OfflineIntel, ThreatIntel
 from .mailings import mailing_service, tracking_service
 from .message import DEFAULT_MAX_BYTES, Attachment, ParsedEmail, parse_file
+from .model import Model
 from .scoring import Finding, risk_level, sort_findings, total_score
 from .urls import URL_SHORTENERS, Link, extract_text_links, parse_html, strip_urls
 
@@ -293,10 +294,26 @@ def _attachment_findings(email: ParsedEmail, visible_html_text: str = "") -> lis
 
 
 def analyze(email: ParsedEmail, source: str = "", intel: ThreatIntel | None = None,
-            brands: Mapping[str, tuple[str, ...]] | None = None) -> Report:
-    """Analyse a parsed email. ``brands`` adds protected brands for this call."""
+            brands: Mapping[str, tuple[str, ...]] | None = None, model: Model | None = None) -> Report:
+    """Analyse a parsed email. ``brands`` adds protected brands for this call;
+    ``model`` adds a statistical model's opinion as one more finding."""
     with custom_brands(brands):
-        return _analyze(email, source, intel)
+        report = _analyze(email, source, intel)
+    if model is not None:
+        report.findings = sort_findings(report.findings + [_model_finding(model, email)])
+    return report
+
+
+def _model_finding(model: Model, email: ParsedEmail) -> Finding:
+    probability, words = model.assess(email)
+    evidence = (f"strongest words: {', '.join(repr(w) for w in words)}; " if words else "") + \
+        f"threshold {model.threshold:.0%}"
+    if probability >= model.threshold:
+        return Finding("model.phishing_like", "high",
+                       f"A statistical model rates the wording {probability:.0%} phishing-like", evidence)
+    return Finding("model.score", "info",
+                   f"A statistical model rates the wording {probability:.0%} phishing-like, below its threshold",
+                   evidence)
 
 
 def _analyze(email: ParsedEmail, source: str, intel: ThreatIntel | None) -> Report:
@@ -327,5 +344,6 @@ def _analyze(email: ParsedEmail, source: str, intel: ThreatIntel | None) -> Repo
 
 def analyze_file(path: str | Path, intel: ThreatIntel | None = None,
                  *, max_bytes: int = DEFAULT_MAX_BYTES,
-                 brands: Mapping[str, tuple[str, ...]] | None = None) -> Report:
-    return analyze(parse_file(path, max_bytes=max_bytes), source=str(path), intel=intel, brands=brands)
+                 brands: Mapping[str, tuple[str, ...]] | None = None, model: Model | None = None) -> Report:
+    return analyze(parse_file(path, max_bytes=max_bytes), source=str(path), intel=intel,
+                   brands=brands, model=model)
