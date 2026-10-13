@@ -1629,14 +1629,10 @@ SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _d
 
 # Scenario id -> why the current rules miss it. Remove an entry when it is fixed.
 KNOWN_GAPS: dict[str, str] = {
-    "dev/legit/newsletter-tracked-url-text":
-        "Click tracking whose visible text is the final URL reads as an anchor mismatch; only Constant "
-        "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
     "dev/phish/bonus-letter-login": "A 'log in to view' request with a link to the sender's own login page reads like "
                                     "a genuine HR portal notice; telling them apart needs sender reputation.",
-    "dev/legit/retailer-tracked-own-url": "Click tracking behind the authenticated sender's own URL reads as an anchor mismatch.",
-    "dev/legit/airline-tracked-own-url": "Click tracking behind the authenticated sender's own URL reads as an anchor mismatch.",
-    "dev/legit/social-text-own-link": "A link to the authenticated sender's own site under other text reads as an anchor mismatch.",
+    "dev/legit/social-text-own-link": "Deliberately not reduced: other text over a link to the sender's own site is how a "
+                                      "phisher's own domain hides behind a trusted name.",
     "dev/legit/verification-code-notice": "Mentioning a verification code counts as asking for one.",
     "dev/legit/one-time-code-login": "Mentioning a one-time code counts as asking for one.",
     "dev/legit/billing-reply-to-helpdesk": "A help-desk Reply-To and a scheduled payment notice read as a request.",

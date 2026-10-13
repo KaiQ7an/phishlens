@@ -11,8 +11,9 @@ from urllib.parse import urlsplit
 from . import attachments as attachment_rules
 from .auth import AuthVerdicts, parse_authentication_results
 from .content import CHAT_APP_DOMAINS, asking_text, find_callback_number, find_signals
-from .domains import (brand_terms, custom_brands, find_lookalike, is_government, is_ip, is_mixed_script,
-                      protected_brands, protected_domains, same_site, to_unicode)
+from .domains import (FREE_MAIL_DOMAINS, brand_terms, custom_brands, find_lookalike, is_government, is_ip,
+                      is_mixed_script, protected_brands, protected_domains, registrable_domain, same_site,
+                      to_unicode)
 from .intel import OfflineIntel, ThreatIntel
 from .mailings import mailing_service, tracking_service
 from .message import DEFAULT_MAX_BYTES, Attachment, ParsedEmail, parse_file
@@ -121,7 +122,7 @@ def _ordinary_visible_site(link: Link) -> bool:
         return False
 
 
-def _header_findings(email: ParsedEmail, provider: str | None = None) -> list[Finding]:
+def _header_findings(email: ParsedEmail, provider: str | None = None, trusted_sender: str = "") -> list[Finding]:
     sender = email.sender
     if sender is None or not sender.domain:
         return [Finding("header.no_sender", "medium", "The From address is missing or malformed")]
@@ -155,10 +156,21 @@ def _header_findings(email: ParsedEmail, provider: str | None = None) -> list[Fi
                                 "A Reply-To address is missing a usable domain",
                                 ", ".join(reply.address or "(empty address)" for reply in malformed[:3])))
     if replies:
-        context = provider and not malformed and all(_ordinary_reply_domain(r.domain) for r in replies)
-        title = (f"Replies use a different domain from a {provider} sender address; this can occur with From rewriting"
-                 if context else "Replies go to a different domain from the sender")
-        findings.append(Finding("header.reply_to_mismatch", "low" if context else "medium", title,
+        ordinary = not malformed and all(_ordinary_reply_domain(r.domain) for r in replies)
+        context = provider and ordinary
+        # An authenticated organisation often routes replies to a help desk or
+        # mailing service. Free-mail reply targets stay medium: they are the
+        # usual sign of a compromised or spoofed business account.
+        helpdesk = (not context and trusted_sender and ordinary
+                    and not any(registrable_domain(r.domain) in FREE_MAIL_DOMAINS for r in replies))
+        if context:
+            title = f"Replies use a different domain from a {provider} sender address; this can occur with From rewriting"
+        elif helpdesk:
+            title = ("Replies go to a different domain from the authenticated sender "
+                     "(common with help desks and mailing services)")
+        else:
+            title = "Replies go to a different domain from the sender"
+        findings.append(Finding("header.reply_to_mismatch", "low" if context or helpdesk else "medium", title,
                                 f"From {sender.domain}, Reply-To {', '.join(r.address for r in replies[:3])}"))
         # Inspect all reply targets, so an ordinary first address cannot hide a
         # later brand lookalike. A routing pattern does not waive these findings.
@@ -181,7 +193,7 @@ def _header_findings(email: ParsedEmail, provider: str | None = None) -> list[Fi
 
 
 def _link_findings(links: list[Link], provider: str | None = None,
-                   sender_domain: str = "") -> list[Finding]:
+                   sender_domain: str = "", trusted_sender: str = "") -> list[Finding]:
     findings: list[Finding] = []
     seen: set[tuple[str, str]] = set()
 
@@ -210,6 +222,16 @@ def _link_findings(links: list[Link], provider: str | None = None,
                 add("url.tracking_destination_unverified", "low",
                     f"Link text shows {claimed} via a {provider} tracking route; final destination is unverified",
                     link.url, host)
+            elif (trusted_sender and _ordinary_visible_site(link) and same_site(claimed, trusted_sender)
+                  and not is_ip(host) and find_lookalike(host) is None and not is_mixed_script(host)):
+                # The sender passed SPF, DKIM and DMARC for its own domain, and the
+                # text names that same site: click tracking, not a disguise. The
+                # reverse (other text over a link to the sender's own site) is
+                # deliberately not reduced; that is how a phisher's own domain
+                # hides behind a trusted name.
+                add("url.own_site_destination_unverified", "low",
+                    f"Link text shows the authenticated sender's site {claimed} but the link goes through "
+                    f"{to_unicode(host)}; final destination is unverified", link.url, host)
             else:
                 add("url.anchor_mismatch", "high",
                     f"Link text shows {claimed} but the link goes to {to_unicode(host)}", link.url, host)
@@ -330,21 +352,33 @@ def _analyze(email: ParsedEmail, source: str, intel: ThreatIntel | None) -> Repo
     links = html_links + [l for l in extract_text_links(email.text)
                           if l.url not in html_urls]
     auth = parse_authentication_results(email.authentication_results)
+    # The From domain, when recorded SPF, DKIM and DMARC all passed without
+    # authentication or parsing warnings.
+    trusted = (email.sender.domain if email.sender and email.sender.domain and auth
+               and (auth.spf, auth.dkim, auth.dmarc) == ("pass", "pass", "pass")
+               and not auth.warnings and not email.parsing_warnings else "")
     content = _content_findings(email, visible_html_text)
     attachments = _attachment_findings(email, visible_html_text)
     provider = (None if any(f.severity in ("medium", "high") for f in content + attachments)
                 else _mailing_context(email, auth))
-    headers = _header_findings(email, provider)
+    sender_domain = email.sender.domain if email.sender else ""
+    headers = _header_findings(email, provider, trusted)
     if provider and any(f.severity in ("medium", "high") and f.code != "header.reply_to_mismatch"
                         for f in headers):
         provider = None
-        headers = _header_findings(email)
-    link_findings = _link_findings(links, provider, email.sender.domain if email.sender else "")
+        headers = _header_findings(email, trusted_sender=trusted)
+    link_findings = _link_findings(links, provider, sender_domain, trusted)
     if provider and any(f.severity in ("medium", "high") for f in link_findings):
         # Forms and other substantial URL signals invalidate routing context
         # for the whole message, irrespective of link order or shared hosts.
-        headers = _header_findings(email)
-        link_findings = _link_findings(links)
+        provider = None
+        headers = _header_findings(email, trusted_sender=trusted)
+        link_findings = _link_findings(links, sender_domain=sender_domain, trusted_sender=trusted)
+    # The help-desk Reply-To reduction, like the mailing-route ones, only
+    # applies to an otherwise clean message.
+    others = content + attachments + link_findings + [f for f in headers if f.code != "header.reply_to_mismatch"]
+    if trusted and any(f.severity in ("medium", "high") for f in others):
+        headers = _header_findings(email, provider)
     findings = _auth_findings(auth) + headers + link_findings + content + attachments
     return Report(source=source, email=email, auth=auth, findings=sort_findings(findings), links=links)
 

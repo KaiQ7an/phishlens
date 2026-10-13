@@ -328,3 +328,33 @@ def test_delivery_wording_scores_only_with_a_request(body, scored):
     severities = {f.severity for f in analyze(_email("Shop", "mail-host.example", body)).findings
                   if f.code == "content.delivery"}
     assert severities == ({"low"} if scored else {"info"})
+
+
+def _html_email(domain, anchor, href, auth="spf=pass; dkim=pass; dmarc=pass"):
+    raw = (f"Authentication-Results: mx.receiver.example; {auth}\nFrom: News <news@{domain}>\nSubject: News\n"
+           f"MIME-Version: 1.0\nContent-Type: text/html\n\n<p><a href=\"{href}\">{anchor}</a></p>\n").encode()
+    return parse_bytes(raw)
+
+
+def _severity(report, code):
+    return {f.code: f.severity for f in report.findings}.get(code)
+
+
+def test_authenticated_sender_own_url_over_tracking_is_low():
+    report = analyze(_html_email("shop.example.com", "www.shop.example.com/new", "https://click.tracker.example/c/1"))
+    assert _severity(report, "url.own_site_destination_unverified") == "low"
+    assert _severity(report, "url.anchor_mismatch") is None and report.level == "low"
+
+
+@pytest.mark.parametrize("auth", ["spf=pass; dkim=pass; dmarc=fail", "spf=fail; dkim=pass; dmarc=pass"])
+def test_own_url_reduction_needs_full_authentication(auth):
+    report = analyze(_html_email("shop.example.com", "www.shop.example.com/new",
+                                 "https://click.tracker.example/c/1", auth))
+    assert _severity(report, "url.anchor_mismatch") == "high"
+
+
+def test_trusted_name_over_a_link_to_the_senders_own_domain_stays_high():
+    # A phisher's own domain can pass DMARC; showing someone else's site is the disguise.
+    report = analyze(_html_email("quota-alerts.example", "https://my.monash.edu/mail",
+                                 "https://quota-alerts.example/upgrade"))
+    assert _severity(report, "url.anchor_mismatch") == "high"

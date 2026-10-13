@@ -127,6 +127,14 @@ def load_brand_file(path: str | Path) -> dict[str, tuple[str, ...]]:
         brands[name] = tuple(dict.fromkeys(domains))
     return brands
 
+# Free webmail providers. A Reply-To at one of these, from an organisation's
+# authenticated address, is a classic sign of a compromised or spoofed account.
+FREE_MAIL_DOMAINS = frozenset({
+    "gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "live.com", "msn.com", "yahoo.com",
+    "icloud.com", "me.com", "aol.com", "proton.me", "protonmail.com", "gmx.com", "mail.com", "yandex.com",
+    "qq.com", "163.com", "126.com", "sina.com", "foxmail.com",
+})
+
 GOVERNMENT_SUFFIXES = ("gov", "mil", "gov.au", "gov.cn", "gov.uk", "govt.nz", "gov.hk", "gov.sg", "go.jp")
 
 # Characters commonly swapped in for Latin letters. Not exhaustive; Unicode's

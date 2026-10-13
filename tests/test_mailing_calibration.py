@@ -33,8 +33,21 @@ def test_provider_from_rewrite_retains_lower_weight_reply_warning():
     assert "From rewriting" in mismatch.title and "club.example" in mismatch.evidence
 
 
-def test_unknown_sender_keeps_normal_reply_warning():
+def test_unknown_authenticated_sender_gets_only_the_help_desk_reduction():
     report = analyze(mailing_email(sender=Address("Example Club", "news@ordinary.example")))
+    mismatch = finding(report, "header.reply_to_mismatch")
+    assert mismatch.points == 5 and "help desks" in mismatch.title and "From rewriting" not in mismatch.title
+
+
+@pytest.mark.parametrize("changes", [
+    {"reply_to": [Address("Editor", "club.editor@gmail.com")]},           # free-mail reply target
+    {"authentication_results": ["mx.receiver.example; spf=pass; dkim=pass; dmarc=fail"]},
+    {"authentication_results": []},
+    {"text": "Please verify your account."},                               # not otherwise clean
+])
+def test_unknown_sender_keeps_normal_reply_warning(changes):
+    email = mailing_email(sender=Address("Example Club", "news@ordinary.example"))
+    report = analyze(replace(email, **changes))
     assert finding(report, "header.reply_to_mismatch").points == 15
 
 
