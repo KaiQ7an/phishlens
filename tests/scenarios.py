@@ -1643,8 +1643,6 @@ KNOWN_GAPS: dict[str, str] = {
                                     "a genuine HR portal notice; telling them apart needs sender reputation.",
     "dev/legit/social-text-own-link": "Deliberately not reduced: other text over a link to the sender's own site is how a "
                                       "phisher's own domain hides behind a trusted name.",
-    "dev/legit/code-warning-never-give": "'Never give your code' is not recognised as safety advice.",
-    "dev/legit/code-warning-do-not-provide": "'Do not provide this code' is not recognised as safety advice.",
     "holdout2/phish/remote-job-cheque": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout2/phish/esign-settlement": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout3/phish/unpaid-toll": "Missed by the round-three rules (holdout3: not used for tuning).",

@@ -111,3 +111,16 @@ def test_codes_count_only_when_asked_for(text, asks):
 ])
 def test_payment_requests_need_a_request(text, payment):
     assert ("content.payment" in {s.code for s, _ in find_signals(text)}) == payment
+
+
+@pytest.mark.parametrize("text", [
+    "Never give your security code to anyone, including our staff.",
+    "Do not provide this one-time code to anyone who calls you.",
+])
+def test_code_safety_warnings_are_not_requests(text):
+    assert "content.credentials" not in {s.code for s, _ in find_signals(text)}
+
+
+def test_secrecy_in_the_same_sentence_does_not_hide_a_code_request():
+    codes = {s.code for s, _ in find_signals("Send me the verification code and never tell anyone.")}
+    assert "content.credentials" in codes

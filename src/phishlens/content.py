@@ -177,7 +177,9 @@ _CHARGE_PHRASES = ("charged", "renewed", "renewal", "to cancel", "refund", "lega
 _NEGATABLE = frozenset({"content.credentials", "content.wallet_secret", "content.payment",
                         "content.remote_access", "content.off_channel", "content.qr_code"})
 _NEGATION_CUES = ("never ask", "never request", "will not ask", "won't ask", "never share", "don't share",
-                  "do not share", "never give out",
+                  "do not share", "never give", "do not give", "don't give", "never provide", "do not provide",
+                  "don't provide", "never send", "never forward", "do not forward", "don't forward",
+                  "no one will ask", "nobody will ask",
                   "绝不会", "不会向您索要", "不会要求", "不会索要", "请勿透露", "切勿透露", "不要透露")
 _SENTENCE_RE = re.compile(r"(?<=[.!?])\s+|[。！？；;\n]+")
 
