@@ -63,3 +63,17 @@ def test_missing_sources_and_bad_models_fail_cleanly(tmp_path, capsys):
     bad.write_text("{}")
     assert check_mailbox.main([str(inbox), "--label", "legitimate", "--model", str(bad)]) == 1
     assert "cannot load model" in capsys.readouterr().err
+
+
+def test_detail_reports_only_built_in_phrases_and_link_kinds(tmp_path):
+    inbox, _ = _write_mail(tmp_path)
+    (inbox / "promo.eml").write_text(
+        "From: Shop <news@shop.example>\nSubject: Sale\nMIME-Version: 1.0\nContent-Type: text/html\n\n"
+        '<p>Pay $25 within 3 days. <a href="https://click.tracker.example/x?id=SECRET99">https://shop.example/sale</a>'
+        " Verify your account.</p>\n")
+    out = check_mailbox.check([inbox], "legitimate", None, detail=True)
+    assert "content.credentials: verify your account" in out
+    assert "content.urgency: (pattern)" in out and "content.payment: (pattern)" in out
+    assert "text shows sender's site, link goes to another site, no DMARC pass" in out
+    for private in ("SECRET99", "tracker.example", "shop.example", "$25", "within 3 days", SECRET_SUBJECT):
+        assert private not in out

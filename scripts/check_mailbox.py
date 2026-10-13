@@ -12,6 +12,12 @@ addresses, links or message text, and writes nothing.
 
 Sources are .eml files, directories (searched for .eml files, recursively) and
 mbox files. Share the output only if you are comfortable with these counts.
+
+--detail adds diagnostics for flagged messages, still without message text:
+the most common combinations of finding codes, which of PhishLens's own
+built-in phrases matched (phrases found by number patterns show only as
+"(pattern)"), and the kind of link-text mismatch (whether the shown and the
+real link domains belong to the sender, and whether DMARC passed).
 """
 
 from __future__ import annotations
@@ -23,8 +29,12 @@ from collections import Counter
 from pathlib import Path
 
 from phishlens.analyzer import analyze
-from phishlens.message import DEFAULT_MAX_BYTES, EmailInputError, parse_bytes
+from phishlens.auth import parse_authentication_results
+from phishlens.content import find_signals
+from phishlens.domains import same_site
+from phishlens.message import DEFAULT_MAX_BYTES, EmailInputError, ParsedEmail, parse_bytes
 from phishlens.model import Model, ModelError, load_model
+from phishlens.urls import extract_text_links, parse_html, strip_urls
 
 MAX_FILES = 100_000
 
@@ -64,11 +74,43 @@ def raw_messages(sources: list[Path]):
                 box.close()
 
 
-def check(sources: list[Path], label: str, model: Model | None) -> str:
+def _phrases(email: ParsedEmail) -> set[str]:
+    """Built-in phrases that matched, as "code: phrase"; never message text."""
+    visible = parse_html(email.html)[1] if email.html else ""
+    name = email.sender.display_name if email.sender else ""
+    text = strip_urls("\n".join((name, email.subject, email.text, visible)))
+    found = set()
+    for signal, matched in find_signals(text):
+        lexicon = {p.lower() for p in signal.phrases}
+        for m in matched:
+            found.add(f"{signal.code}: {m if m.lower() in lexicon else '(pattern)'}")
+    return found
+
+
+def _link_kinds(email: ParsedEmail) -> set[str]:
+    """How shown and real link domains relate to the sender, without naming them."""
+    sender = email.sender.domain if email.sender else ""
+    auth = parse_authentication_results(email.authentication_results)
+    dmarc = "DMARC pass" if auth and auth.dmarc == "pass" else "no DMARC pass"
+    links = (parse_html(email.html)[0] if email.html else []) + extract_text_links(email.text)
+    kinds = set()
+    for link in links:
+        claimed = link.anchor_mismatch()
+        if claimed and link.host:
+            shown = "sender's site" if sender and same_site(claimed, sender) else "another site"
+            real = "sender's site" if sender and same_site(link.host, sender) else "another site"
+            kinds.add(f"text shows {shown}, link goes to {real}, {dmarc}")
+    return kinds
+
+
+def check(sources: list[Path], label: str, model: Model | None, detail: bool = False) -> str:
     verdicts: Counter[str] = Counter()
     codes_all: Counter[str] = Counter()
     codes_flagged: Counter[str] = Counter()
     scores: list[float] = []
+    combos: Counter[str] = Counter()
+    phrases: Counter[str] = Counter()
+    link_kinds: Counter[str] = Counter()
     unreadable = 0
     for raw in raw_messages(sources):
         if raw is None:
@@ -85,6 +127,11 @@ def check(sources: list[Path], label: str, model: Model | None) -> str:
         codes_all.update(rule_codes)
         if report.level != "low":
             codes_flagged.update(rule_codes)
+            if detail:
+                combos[" + ".join(sorted(rule_codes))] += 1
+                phrases.update(_phrases(email))
+                if "url.anchor_mismatch" in rule_codes:
+                    link_kinds.update(_link_kinds(email))
         if model is not None:
             scores.append(model.assess(email)[0])
 
@@ -108,6 +155,12 @@ def check(sources: list[Path], label: str, model: Model | None) -> str:
                            ("Rule findings on all messages", codes_all)):
         lines += ["", f"{title} (code: messages)"]
         lines += [f"  {code}: {n}" for code, n in counter.most_common()] or ["  none"]
+    if detail:
+        for title, counter, limit in (("Finding combinations on flagged messages", combos, 15),
+                                      ("Built-in phrases matched on flagged messages", phrases, 40),
+                                      ("Link-text mismatch kinds on flagged messages", link_kinds, 10)):
+            lines += ["", f"{title} (messages)"]
+            lines += [f"  {n:4}  {key}" for key, n in counter.most_common(limit)] or ["  none"]
     lines += ["", "No file names, subjects, addresses, links or message text are printed."]
     return "\n".join(lines)
 
@@ -118,6 +171,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--label", choices=("legitimate", "phishing"), required=True,
                         help="what these messages are known to be")
     parser.add_argument("--model", type=Path, help="also score with a model from scripts/train_model.py")
+    parser.add_argument("--detail", action="store_true",
+                        help="add code combinations, matched built-in phrases and link-mismatch kinds")
     args = parser.parse_args(argv)
     sources = [s.expanduser() for s in args.sources]
     missing = sum(not s.exists() for s in sources)
@@ -129,7 +184,7 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, ModelError) as error:
         print(f"check_mailbox: cannot load model: {error}", file=sys.stderr)
         return 1
-    print(check(sources, args.label, model))
+    print(check(sources, args.label, model, args.detail))
     return 0
 
 

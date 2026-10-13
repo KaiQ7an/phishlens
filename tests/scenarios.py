@@ -617,6 +617,71 @@ def _dev_round_nine() -> list[Scenario]:
     ]
 
 
+def _dev_round_ten() -> list[Scenario]:
+    """Added 2026-10-13 after a counts-only check of 494 of the author's own
+    messages found 22% false alarms. Each legitimate scenario is an invented
+    reconstruction of one diagnosed pattern (no real content); phishing
+    scenarios guard the same rules against attackers who mimic them."""
+    s, p = "legitimate", "phishing"
+    tracked = '<p><a href="https://click.mailer-tracking.example/c/{0}">{1}</a></p>'
+    return [
+        Scenario("dev/legit/retailer-tracked-own-url", "dev", s, "marketing",
+                 "Authenticated retailer whose link text is its own URL, routed through click tracking.",
+                 build("Harbour Outdoors <news@harbouroutdoors.com.au>", "New season, new trails",
+                       "Shop the new range at www.harbouroutdoors.com.au/new\n",
+                       html=tracked.format("a1b2", "www.harbouroutdoors.com.au/new"))),
+        Scenario("dev/legit/airline-tracked-own-url", "dev", s, "service notice",
+                 "Authenticated airline notice whose link text is its own manage-booking address.",
+                 build("Jetstar <noreply@jetstar.com>", "Your trip is coming up",
+                       "Add bags or choose seats before you fly.\n",
+                       html=tracked.format("x9y8", "https://www.jetstar.com/manage-booking"))),
+        Scenario("dev/legit/social-text-own-link", "dev", s, "marketing",
+                 "Authenticated sender whose link text names a social site but goes to its own site.",
+                 build("Track Days Australia <hello@trackdays.com.au>", "Follow the race weekend",
+                       "Follow us for live updates.\n",
+                       html='<p><a href="https://www.trackdays.com.au/social">instagram.com/trackdaysau</a></p>')),
+        Scenario("dev/legit/verification-code-notice", "dev", s, "security notice",
+                 "Verification code email that warns the reader to act immediately if it was not them.",
+                 build("Canva <no-reply@canva.com>", "Your Canva verification code",
+                       "Your verification code is 482913. It expires in 10 minutes. If you didn't request "
+                       "this code, change your password immediately.\n")),
+        Scenario("dev/legit/one-time-code-login", "dev", s, "security notice",
+                 "One-time sign-in code from an authenticated service.",
+                 build("Uber <noreply@uber.com>", "Your one-time code",
+                       "Use this one-time code to sign in: 220871. Someone may be trying to access your "
+                       "account if you didn't ask for it, so secure it immediately.\n")),
+        Scenario("dev/legit/billing-reply-to-helpdesk", "dev", s, "bill",
+                 "Authenticated bill whose replies go to the company's help-desk provider.",
+                 build("Belong <billing@belong.com.au>", "Your bill is ready",
+                       "Your monthly bill is ready. Payment of $35.00 will be taken on 20 October.\n",
+                       reply_to="Belong Support <support@belong-help.zendesk.example>")),
+        Scenario("dev/legit/retail-gift-card-promo", "dev", s, "marketing",
+                 "Retail promotion selling gift cards, delivered immediately by email.",
+                 build("JB Hi-Fi <offers@jbhifi.com.au>", "Last-minute gifts sorted",
+                       "Stuck for ideas? Give a JB Hi-Fi gift card, delivered immediately by email.\n")),
+        Scenario("dev/legit/cafe-gift-card-reward", "dev", s, "marketing",
+                 "Loyalty email about a gift card reward.",
+                 build("Grill'd <hello@grilld.com.au>", "A little thank you",
+                       "Thanks for being a regular. Top up a gift card this week and we'll add $10 — "
+                       "offer ends Sunday, so act now.\n")),
+        Scenario("dev/phish/reply-to-freemail-invoice", "dev", p, "business email compromise",
+                 "Authenticated but compromised supplier account whose replies go to a free-mail address.",
+                 build("Accounts <accounts@harbouroutdoors.com.au>", "Overdue invoice 4471",
+                       "Invoice 4471 is overdue. Please pay $8,420 today and reply to confirm.\n",
+                       reply_to="Accounts <harbour.accounts.payable@gmail.com>")),
+        Scenario("dev/phish/ask-for-code-by-reply", "dev", p, "account takeover",
+                 "Asks the reader to send back the code just sent to their phone.",
+                 build("Account Security <security@account-verify-desk.example>", "Urgent: confirm it's you",
+                       "We sent a verification code to your phone. Reply with the code immediately to stop "
+                       "your account being locked.\n")),
+        Scenario("dev/phish/pay-fine-gift-cards", "dev", p, "government impersonation",
+                 "Demands that a fine be paid with gift cards.",
+                 build("Fines Unit <fines@infringement-unit.example>", "Unpaid fine",
+                       "An unpaid fine is recorded against you. Pay with Google Play gift cards today to "
+                       "avoid court action.\n")),
+    ]
+
+
 def _holdout() -> list[Scenario]:
     s, p = "legitimate", "phishing"
     return [
@@ -1559,7 +1624,7 @@ def _holdout_round_seven() -> list[Scenario]:
     ]
 
 
-SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _dev_round_five() + _dev_round_six() + _dev_round_seven() + _dev_round_eight() + _dev_round_nine() + _holdout() + _holdout_round_two() + _holdout_round_three() + _holdout_round_four() + _holdout_round_five() + _holdout_round_six() + _holdout_round_seven())
+SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _dev_round_five() + _dev_round_six() + _dev_round_seven() + _dev_round_eight() + _dev_round_nine() + _dev_round_ten() + _holdout() + _holdout_round_two() + _holdout_round_three() + _holdout_round_four() + _holdout_round_five() + _holdout_round_six() + _holdout_round_seven())
 
 
 # Scenario id -> why the current rules miss it. Remove an entry when it is fixed.
@@ -1569,6 +1634,15 @@ KNOWN_GAPS: dict[str, str] = {
         "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
     "dev/phish/bonus-letter-login": "A 'log in to view' request with a link to the sender's own login page reads like "
                                     "a genuine HR portal notice; telling them apart needs sender reputation.",
+    "dev/legit/retailer-tracked-own-url": "Click tracking behind the authenticated sender's own URL reads as an anchor mismatch.",
+    "dev/legit/airline-tracked-own-url": "Click tracking behind the authenticated sender's own URL reads as an anchor mismatch.",
+    "dev/legit/social-text-own-link": "A link to the authenticated sender's own site under other text reads as an anchor mismatch.",
+    "dev/legit/verification-code-notice": "Mentioning a verification code counts as asking for one.",
+    "dev/legit/one-time-code-login": "Mentioning a one-time code counts as asking for one.",
+    "dev/legit/billing-reply-to-helpdesk": "A help-desk Reply-To and a scheduled payment notice read as a request.",
+    "dev/legit/retail-gift-card-promo": "Selling gift cards counts as a payment request.",
+    "dev/legit/cafe-gift-card-reward": "Selling gift cards counts as a payment request.",
+    "dev/phish/pay-fine-gift-cards": "Paying with gift cards is only a medium payment phrase.",
     "holdout2/phish/remote-job-cheque": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout2/phish/esign-settlement": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout3/phish/unpaid-toll": "Missed by the round-three rules (holdout3: not used for tuning).",
