@@ -73,7 +73,7 @@ def test_detail_reports_only_built_in_phrases_and_link_kinds(tmp_path):
         " Verify your account.</p>\n")
     out = check_mailbox.check([inbox], "legitimate", None, detail=True)
     assert "content.credentials: verify your account" in out
-    assert "content.urgency: (pattern)" in out and "content.payment: (pattern)" in out
+    assert "content.urgency: (pattern 1)" in out and "content.payment: (pattern 1)" in out
     assert "text shows sender's site, link goes to another site, no DMARC pass" in out
     for private in ("SECRET99", "tracker.example", "shop.example", "$25", "within 3 days", SECRET_SUBJECT):
         assert private not in out

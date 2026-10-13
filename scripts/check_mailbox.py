@@ -15,8 +15,8 @@ mbox files. Share the output only if you are comfortable with these counts.
 
 --detail adds diagnostics for flagged messages, still without message text:
 the most common combinations of finding codes, which of PhishLens's own
-built-in phrases matched (phrases found by number patterns show only as
-"(pattern)"), and the kind of link-text mismatch (whether the shown and the
+built-in phrases matched (patterns show only as "(pattern N)", the Nth built-in pattern of that
+signal), and the kind of link-text mismatch (whether the shown and the
 real link domains belong to the sender, and whether DMARC passed).
 """
 
@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import mailbox
+import re
 import sys
 from collections import Counter
 from pathlib import Path
@@ -83,7 +84,12 @@ def _phrases(email: ParsedEmail) -> set[str]:
     for signal, matched in find_signals(text):
         lexicon = {p.lower() for p in signal.phrases}
         for m in matched:
-            found.add(f"{signal.code}: {m if m.lower() in lexicon else '(pattern)'}")
+            if m.lower() in lexicon:
+                found.add(f"{signal.code}: {m}")
+                continue
+            # Name the built-in pattern that matched, never the matched text.
+            number = next((n for n, pattern in enumerate(signal.patterns, 1) if re.fullmatch(pattern, m)), "?")
+            found.add(f"{signal.code}: (pattern {number})")
     return found
 
 
