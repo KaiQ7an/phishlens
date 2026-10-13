@@ -268,6 +268,13 @@ def _content_findings(email: ParsedEmail, visible_html_text: str) -> list[Findin
                                         "Claims to be police, a tax office or government but was not sent from a government domain",
                                         f"{evidence}; sender {email.sender.domain}"))
                 continue
+        if signal.code == "content.delivery" and not codes & {"content.payment", "content.credentials"}:
+            # Parcel wording is everyday mail ("free delivery"); it only adds
+            # risk as the setting for a request for money or card details,
+            # the parcel-fee shape.
+            findings.append(Finding(signal.code, "info", "Concerns a parcel or delivery (scored only with a "
+                                    "request for money or details)", evidence))
+            continue
         findings.append(Finding(signal.code, signal.severity, signal.title, evidence))
     asking = asking_text(text)
     if _GIFT_CARD_RE.search(asking) and _GIFT_CARD_CODES_RE.search(asking):

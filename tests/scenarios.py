@@ -1569,10 +1569,6 @@ KNOWN_GAPS: dict[str, str] = {
         "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
     "dev/phish/bonus-letter-login": "A 'log in to view' request with a link to the sender's own login page reads like "
                                     "a genuine HR portal notice; telling them apart needs sender reputation.",
-    "dev/legit/retail-free-delivery": "Delivery wording scores on its own and, with an ordinary Reply-To on "
-                                      "another domain, reaches the suspicious threshold.",
-    "dev/legit/event-package-newsletter": "Delivery wording scores on its own and, with an ordinary Reply-To "
-                                          "on another domain, reaches the suspicious threshold.",
     "holdout2/phish/remote-job-cheque": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout2/phish/esign-settlement": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout3/phish/unpaid-toll": "Missed by the round-three rules (holdout3: not used for tuning).",

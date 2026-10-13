@@ -317,3 +317,14 @@ def test_chat_apps_own_notices_are_not_off_channel_moves():
 def test_chinese_password_requests_need_a_request(body, asks):
     codes = {f.code for f in analyze(_email("Notice", "mail-host.example", body)).findings}
     assert ("content.credentials" in codes) == asks
+
+
+@pytest.mark.parametrize("body, scored", [
+    ("Free delivery on orders over $80 this weekend.", False),
+    ("Your parcel is held. Pay $2.40 to release it.", True),
+    ("包裹丢失，请回复银行卡号以便理赔。", True),
+])
+def test_delivery_wording_scores_only_with_a_request(body, scored):
+    severities = {f.severity for f in analyze(_email("Shop", "mail-host.example", body)).findings
+                  if f.code == "content.delivery"}
+    assert severities == ({"low"} if scored else {"info"})
