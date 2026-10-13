@@ -57,7 +57,9 @@ PhishLens 是离线 `.eml` 钓鱼迹象分析 CLI，输出可解释的风险分�
 
 经用户同意下载的语料放在仓库外 `~/Datasets/phishlens/`：`nazario/`（Jose Nazario 钓鱼语料 2015–2025，CC BY 4.0，使用时需署名）与 `spamassassin/`（20030228 easy_ham、easy_ham_2、hard_ham，无明确许可，仅本机用于过滤器开发，**不得分发或入库**）。已训练的 `model-v1.json`、`model-v2.json` 也在该目录。
 
-结果：仅用公开语料时，语料测试集（2023–2025 钓鱼）召回 97%、误报 0.4%，但在合成 dev 上把 38/55 封正常邮件判为钓鱼——公开正常邮件是 2002–2003 年的邮件列表，模型主要学到“新旧邮件”的差别。加入 dev 场景 ×30、用 dev 交叉拟合定阈值（0.985）后变得保守，与规则合用时在 holdout 上只多检出 1 封、多误报 1 封。缺的是现代正常邮件语料；在找到合适来源前不建议使用模型。曾在 scratchpad 实验中看到阈值 0.9 时 holdout 表现更好，但那是看着 holdout 选的阈值，不能作为结论。
+结果（2026-10-13 按来源分别切分后重训）：仅用公开语料时，语料测试集（2023–2025 钓鱼）召回 98%、误报 0.2%，但在合成 dev 上把 40/55 封正常邮件判为钓鱼——公开正常邮件是 2002–2003 年的邮件列表，模型主要学到“新旧邮件”的差别。加入 dev 场景 ×30、用 dev 交叉拟合定阈值（0.987）后变得保守，与规则合用时在 holdout 上只多检出 1 封、多误报 1 封。缺的是现代正常邮件语料。曾在 scratchpad 实验中看到阈值 0.9 时 holdout 表现更好，但那是看着 holdout 选的阈值，不能作为结论。
+
+用户 2026-10-13 表示 `~/Downloads` 里有自己的真实邮件（10 封 `.eml`）。读取被 Claude Code 自动权限检查（PII）拦下，未读取任何内容。为此新增 `scripts/check_mailbox.py`：由用户自己运行，只输出计数（结论、误报/检出率、规则代码命中数、模型分数分布），不输出文件名、主题、地址、链接或正文。10 封太少，不足以训练；更多现代正常邮件需要用户自己导出邮箱（mbox）并在本机运行训练，训练脚本会按来源报告误报。
 
 ## 模块地图
 
@@ -75,7 +77,8 @@ PhishLens 是离线 `.eml` 钓鱼迹象分析 CLI，输出可解释的风险分�
 | `intel.py` | 离线接口占位；尚无外部信誉查询 |
 | `tests/` | 合成 fixtures 与回归测试；`test_evaluate.py` 检查评估脚本 |
 | `tests/scenarios.py` / `scripts/evaluate.py` | 224 个已标注合成场景（dev 与 holdout–holdout6）、`KNOWN_GAPS`、按集合及 variant/new 的评估 |
-| `scripts/train_model.py` | 在仓库外语料上训练可选模型，按年份切分测试，可加入 dev 场景并交叉拟合阈值 |
+| `scripts/train_model.py` | 在仓库外语料上训练可选模型，按年份切分测试、按来源报告误报，可加入 dev 场景并交叉拟合阈值 |
+| `scripts/check_mailbox.py` | 用户在自己的邮件上只看计数的私密评估 |
 | `scripts/verify_distribution.py` | 检出目录外新环境中的 wheel/sdist 安装与 CLI 检查 |
 | `.github/workflows/ci.yml` | 跨版本/平台测试、构建和普通 CI 构件；不发布版本 |
 
@@ -115,7 +118,7 @@ python scripts/verify_distribution.py --dist-dir "$phishlens_dist_dir" --build-d
 ## 本轮最终验证记录
 
 - 代码提交截至 `f7dd2a7`，本文件所在文档提交之后推送到 `origin/main`。
-- Python 3.14.8 重装 wheel 后：**746 passed, 26 xfailed**（xfail 为已记录的已知缺口）。
+- Python 3.14.8 重装 wheel 后：**749 passed, 26 xfailed**（xfail 为已记录的已知缺口）。
 - wheel/sdist 构建、`twine check` 及仓库外两个新环境中的离线包检查（含目录批量分析）全部通过。
 - 六封公开 fixture：正常邮件 0；五封钓鱼均为 high；README 示例输出已与实际输出核对。
 - GitHub Actions：截至提交 `2ca3f87` 的 CI #26 及之前各次运行通过（已通过公开 API 核对）；#16 曾因 Windows 不允许文件名含控制字符而失败，#17 已跳过该用例并通过。之后的推送需再次核对。

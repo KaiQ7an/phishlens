@@ -354,8 +354,8 @@ development as its maintainer intends and not redistributed):
 
 | Model | Corpus test: phishing 2023–2025 detected | Corpus test: legitimate flagged | Synthetic dev: legitimate flagged | Synthetic dev: phishing detected |
 | --- | ---: | ---: | ---: | ---: |
-| Corpora only, threshold 0.50 | 97% | 0.4% | 38 / 55 | 58 / 65 |
-| Plus dev scenarios ×30, threshold 0.985 from dev cross-fitting | 43% | 0% | 2 / 55 (out of fold) | 6 / 65 (out of fold) |
+| Corpora only, threshold 0.50 | 98% | 0.2% | 40 / 55 | 59 / 65 |
+| Plus dev scenarios ×30, threshold 0.987 from dev cross-fitting | 37% | 0% | 2 / 55 (out of fold) | 5 / 65 (out of fold) |
 
 The near-perfect corpus result does not carry over. The public legitimate
 mail is twenty-year-old mailing-list traffic, so the first model mostly
@@ -365,6 +365,26 @@ scenarios and setting the threshold on dev scenarios the model had not seen
 made it conservative: with the rules, it added one holdout detection and one
 holdout false alarm. What is missing is modern legitimate mail; until a
 suitable corpus is available, the model is not recommended for use.
+
+The training script splits each legitimate source separately and reports a
+false-alarm count per source, so you can add your own exported mailbox (an
+mbox file or a folder of `.eml` files) as a further `--legitimate` source and
+see how the model treats your own mail. The model file stays on your computer.
+
+### Checking your own mail privately
+
+`scripts/check_mailbox.py` measures PhishLens on mail you know the answer for,
+printing only counts: verdicts, the false-alarm or detection rate, how many
+messages each finding code fired on and, with `--model`, the model's score
+spread. It never prints file names, subjects, addresses, links or message text.
+
+```bash
+python -I scripts/check_mailbox.py ~/Downloads --label legitimate
+python -I scripts/check_mailbox.py ~/Mail/Reported-phishing.mbox --label phishing
+```
+
+Directories are searched recursively for `.eml` files; mbox files are read
+directly.
 
 ## Safety model and limitations
 
@@ -408,7 +428,7 @@ python -m pip install '.[dev]'
 python -m pytest -q
 ```
 
-The current suite has 772 tests (including 26 expected failures for known
+The current suite has 775 tests (including 26 expected failures for known
 gaps) for message parsing, input limits, malformed MIME,
 text decoding, authentication-header ambiguity, domains, links, inline/container
 attachments, language signals, scoring, mailing-route boundaries, safe report
