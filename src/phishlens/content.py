@@ -43,9 +43,14 @@ SIGNALS: tuple[Signal, ...] = (
         r"(?:密码|验证码)[^。！？\n]{0,6}(?:告诉|告知|发给|回复|报给)",
         # Asks to hand over a sign-in code. Merely mentioning one is what every
         # genuine code email does, and referral or discount codes are not secrets.
-        r"\b(?:send|give|tell|share|forward|read out|reply with|provide)\b[^.\n]{0,40}"
+        # The reader must be the one handing it over ("send us the code"), not
+        # the service sending it ("we will send a security code to your phone").
+        r"\b(?:send|give|tell|forward|provide)\s+(?:us|me|it to|them|the caller|our [\w-]+)\b[^.\n]{0,40}"
         r"\b(?:verification|one-time|security|sms|login|authentication|access|6-digit|six-digit)\s+codes?\b",
-        r"\breply with the code\b", r"\bthe code (?:that )?we (?:just )?sent\b",
+        r"\b(?:send|give|forward|provide|share)\s+(?:back\s+)?(?:your|the|this)\s+(?:[\w-]+\s+){0,2}?"
+        r"(?:verification|one-time|security|sms|login|authentication|access|6-digit|six-digit)\s+codes?"
+        r"\s+(?:to|with)\s+(?:us|me|our|the)\b",
+        r"\b(?:reply with|read out)\s+(?:the|your|this)\s+(?:[\w-]+\s+){0,2}?codes?\b",
     )),
     Signal("content.payment", "medium", "Asks for money or an unusual payment method", (
         "wire transfer", "bank transfer", "bitcoin", "western union", "processing fee",
@@ -64,6 +69,7 @@ SIGNALS: tuple[Signal, ...] = (
         GIFT_CARD_PAYMENT_RE,
         # Money sent to "my"/"this" card or account.
         r"(?:到|给|进)(?:我|我的|这个|指定)(?:的)?(?:卡|账户|账号|银行卡)",
+        r"\b(?:transfer|send|pay|wire|deposit|refund|move)\b[^.\n]{0,40}"
         r"\bto (?:my|our|this|the following)\s+(?:[\w'-]+\s+){0,2}account\b",
         r"\b(?:import|customs)\s+(?:duty|duties|tax|fees?)\s+(?:of\s+)?[$€£¥]\s?\d",
     )),

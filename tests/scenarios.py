@@ -1657,9 +1657,6 @@ KNOWN_GAPS: dict[str, str] = {
                                     "a genuine HR portal notice; telling them apart needs sender reputation.",
     "dev/legit/social-text-own-link": "Deliberately not reduced: other text over a link to the sender's own site is how a "
                                       "phisher's own domain hides behind a trusted name.",
-    "dev/legit/we-will-send-a-code": "A service saying it will send a code reads as asking for one.",
-    "dev/legit/code-coming-by-email": "A service saying it will send a code reads as asking for one.",
-    "dev/legit/shipped-go-to-my-account": "'Go to my account' reads as money sent to my account.",
     "holdout2/phish/remote-job-cheque": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout2/phish/esign-settlement": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout3/phish/unpaid-toll": "Missed by the round-three rules (holdout3: not used for tuning).",

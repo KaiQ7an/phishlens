@@ -124,3 +124,22 @@ def test_code_safety_warnings_are_not_requests(text):
 def test_secrecy_in_the_same_sentence_does_not_hide_a_code_request():
     codes = {s.code for s, _ in find_signals("Send me the verification code and never tell anyone.")}
     assert "content.credentials" in codes
+
+
+@pytest.mark.parametrize("text, asks", [
+    ("We will send a security code to your phone.", False),
+    ("We'll send a one-time code to this address.", False),
+    ("Send us the 6-digit code from the text message.", True),
+    ("Share your verification code with our agent to unlock the account.", True),
+    ("Reply with the code immediately.", True),
+])
+def test_code_requests_need_the_reader_to_hand_it_over(text, asks):
+    assert ("content.credentials" in {s.code for s, _ in find_signals(text)}) == asks
+
+
+@pytest.mark.parametrize("text, payment", [
+    ("Go to my account to see delivery details.", False),
+    ("Please refund the extra to my cousin's account.", True),
+])
+def test_account_wording_needs_a_money_verb(text, payment):
+    assert ("content.payment" in {s.code for s, _ in find_signals(text)}) == payment
