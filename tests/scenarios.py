@@ -664,6 +664,16 @@ def _dev_round_ten() -> list[Scenario]:
                  build("Grill'd <hello@grilld.com.au>", "A little thank you",
                        "Thanks for being a regular. Top up a gift card this week and we'll add $10 — "
                        "offer ends Sunday, so act now.\n")),
+        Scenario("dev/legit/code-warning-never-give", "dev", s, "security notice",
+                 "Code email warning never to give the code to anyone.",
+                 build("Commonwealth Bank <noreply@cba.com.au>", "Your NetBank code",
+                       "Your NetCode is 553120. Never give your security code to anyone, including our staff. "
+                       "If you didn't request it, call us immediately.\n")),
+        Scenario("dev/legit/code-warning-do-not-provide", "dev", s, "security notice",
+                 "Code email saying not to provide the code to callers.",
+                 build("Optus <noreply@optus.com.au>", "One-time code for My Optus",
+                       "Here is your code: 771204. Do not provide this one-time code to anyone who calls or "
+                       "messages you. Change your password immediately if you didn't ask for it.\n")),
         Scenario("dev/phish/reply-to-freemail-invoice", "dev", p, "business email compromise",
                  "Authenticated but compromised supplier account whose replies go to a free-mail address.",
                  build("Accounts <accounts@harbouroutdoors.com.au>", "Overdue invoice 4471",
@@ -1633,6 +1643,8 @@ KNOWN_GAPS: dict[str, str] = {
                                     "a genuine HR portal notice; telling them apart needs sender reputation.",
     "dev/legit/social-text-own-link": "Deliberately not reduced: other text over a link to the sender's own site is how a "
                                       "phisher's own domain hides behind a trusted name.",
+    "dev/legit/code-warning-never-give": "'Never give your code' is not recognised as safety advice.",
+    "dev/legit/code-warning-do-not-provide": "'Do not provide this code' is not recognised as safety advice.",
     "holdout2/phish/remote-job-cheque": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout2/phish/esign-settlement": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout3/phish/unpaid-toll": "Missed by the round-three rules (holdout3: not used for tuning).",
