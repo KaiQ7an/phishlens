@@ -41,6 +41,7 @@ def test_training_writes_a_loadable_model_and_reports_a_time_split(tmp_path, cap
                              "--out", str(out), "--epochs", "10"]) == 0
     report = json.loads(capsys.readouterr().out)
     assert report["test"]["phishing"] == 12 and report["counts"]["test"] == 12 + 7
+    assert report["test_by_legitimate_source"]["legit"]["messages"] == 7
     from phishlens.model import load_model
     assert 0.5 <= load_model(out).threshold < 1
 

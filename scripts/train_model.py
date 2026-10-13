@@ -140,12 +140,22 @@ def main(argv: list[str] | None = None) -> int:
 
     print("Reading corpora", file=sys.stderr)
     phishing = load([p.expanduser() for p in args.phishing], 1)
-    legitimate = load([p.expanduser() for p in args.legitimate], 0)
     rng = random.Random(args.seed)
-    rng.shuffle(legitimate)
-    cut = len(legitimate) // 5
-    test = [e for e in phishing if e[2] is not None and e[2] >= args.test_from_year] + legitimate[:cut]
-    pool = [e for e in phishing if e[2] is None or e[2] < args.test_from_year] + legitimate[cut:]
+    # Split each legitimate source on its own, so every source (for example
+    # your own exported mailbox) has test messages and its own false-alarm rate.
+    legit_test: list = []
+    legit_pool: list = []
+    held_by_source: dict[str, list] = {}
+    for n, source in enumerate(args.legitimate):
+        examples = load([source.expanduser()], 0)
+        rng.shuffle(examples)
+        cut = len(examples) // 5
+        name = source.name if source.name not in held_by_source else f"{source.name} ({n + 1})"
+        held_by_source[name] = examples[:cut]
+        legit_test += examples[:cut]
+        legit_pool += examples[cut:]
+    test = [e for e in phishing if e[2] is not None and e[2] >= args.test_from_year] + legit_test
+    pool = [e for e in phishing if e[2] is None or e[2] < args.test_from_year] + legit_pool
     rng.shuffle(pool)
     validation, training = pool[:len(pool) // 10], pool[len(pool) // 10:]
     if not any(e[1] for e in test) or not any(e[1] for e in training):
@@ -186,6 +196,9 @@ def main(argv: list[str] | None = None) -> int:
     model = Model(bias, weights, threshold, metadata)
     metadata["validation"] = _rates(model, validation)
     metadata["test"] = _rates(model, test)
+    metadata["test_by_legitimate_source"] = {
+        name: {"messages": len(held), "false_alarms": sum(model.probability(e[0]) >= threshold for e in held)}
+        for name, held in held_by_source.items()}
     if dev_scores:
         flagged = [(p >= threshold, label) for p, label in dev_scores]
         metadata["dev_out_of_fold"] = {

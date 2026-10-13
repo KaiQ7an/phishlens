@@ -4,3 +4,4 @@ include CHANGELOG.md
 include HANDOFF.md
 include scripts/evaluate.py
 include scripts/train_model.py
+include scripts/check_mailbox.py
