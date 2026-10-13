@@ -10,7 +10,8 @@ scams written after the rules, it flagged 8–50% on first run, so a low score
 is not a sign that an email is safe (see [Evaluation](#evaluation)).
 
 The current MVP uses Python's standard library, with no runtime dependencies or
-API keys. It includes English and Chinese rules and six synthetic sample emails.
+API keys. It includes English and Chinese rules, six synthetic sample emails
+and 262 labelled synthetic evaluation scenarios.
 
 **Status:** active development. The code is public; a tagged Release or PyPI
 package has not been published. Formal release is deferred until final review.
@@ -261,7 +262,7 @@ Its support community also describes [intermediate click-tracking links](https:/
 
 ## Evaluation
 
-`scripts/evaluate.py` scores 260 labelled synthetic scenarios in
+`scripts/evaluate.py` scores 262 labelled synthetic scenarios in
 `tests/scenarios.py` (`--markdown` or `--json` for other formats). Each
 scenario's label was written before the rules were run against it. The
 **dev** split is used to find and fix rule gaps. Each **holdout** split was
@@ -280,7 +281,7 @@ scenario counts as detected when it scores suspicious or high.
 | holdout6 | round 6 | 1 / 12 | 1 / 12 | 1 / 14 |
 | holdout7 | the negation change | 3 / 6 | (current unseen set) | 2 / 24 |
 
-The dev split has 120 scenarios with 98% recall and one false alarm.
+The dev split has 122 scenarios with 98% recall and one false alarm.
 Holdout7 is mostly ordinary inbox mail (marketing and app notices) to measure
 false alarms.
 Holdouts 4–6 separate reworded versions of categories earlier rounds covered
@@ -394,6 +395,12 @@ python -I scripts/check_mailbox.py ~/Mail/Reported-phishing.mbox --label phishin
 Directories are searched recursively for `.eml` files; mbox files are read
 directly.
 
+On ten of the author's own recent messages, the first check found two false
+alarms (20%) from the rules and none from the model. Both came from delivery
+wording plus an ordinary Reply-To on another domain; delivery wording now
+scores only alongside a request for money or card details. Ten messages are
+far too few to measure a rate; the check is there so you can run it on more.
+
 ## Safety model and limitations
 
 - Analysis reads only the files you provide (emails, and optional brand or
@@ -436,7 +443,7 @@ python -m pip install '.[dev]'
 python -m pytest -q
 ```
 
-The current suite has 775 tests (including 26 expected failures for known
+The current suite has 783 tests (including 26 expected failures for known
 gaps) for message parsing, input limits, malformed MIME,
 text decoding, authentication-header ambiguity, domains, links, inline/container
 attachments, language signals, scoring, mailing-route boundaries, safe report

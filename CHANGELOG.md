@@ -97,6 +97,11 @@
   or alongside a request for money, identity details or secrecy. A university
   safety notice that tells students to contact the police is no longer flagged.
 - Report evidence matched by both a phrase and a pattern once.
+- Score parcel and delivery wording only alongside a request for money or card
+  details; on its own it is reported as information. Ordinary marketing mail
+  ("free delivery") with a Reply-To on another domain is no longer flagged.
+- Scripts report missing sources and invalid models without a traceback, and
+  the batch summary aligns columns for wide (for example Chinese) characters.
 - Ignore safety advice that says what will never be asked ("we will never ask
   for your seed phrase", 绝不会索要) for request-type signals, per sentence, so
   a reassurance cannot hide a request elsewhere in the message.
@@ -107,14 +112,14 @@
 
 ### Validation
 
-- Add 260 labelled synthetic scenarios: a dev split for tuning and seven
+- Add 262 labelled synthetic scenarios: a dev split for tuning and seven
   holdout splits, each written after a round of rule changes and run once.
   `scripts/evaluate.py` reports precision and recall per split and, for newer
   holdouts, detection of reworded versus new categories. First-run recall on
   unseen holdouts ranged from 8% to 50% without an upward trend, with three
   false alarms across 76 legitimate holdout messages; the README explains what
   the rounds show. Remaining misses run as strict expected failures.
-- Expand the regression suite to 775 synthetic tests.
+- Expand the regression suite to 783 synthetic tests.
 - Add CI for Linux Python 3.11–3.14 and macOS/Windows Python 3.14.
 - Build and smoke-test wheel/source archives using isolated installations
   outside the checkout without network access during installation.
