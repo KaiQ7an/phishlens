@@ -2,7 +2,7 @@
 
 Before running, build with ``python -m build`` and download source-build wheels:
 ``python -m pip download --only-binary=:all: --dest /tmp/phishlens-build-deps
-"setuptools>=68" wheel``. Then run this script with ``--build-deps`` pointing to
+"setuptools>=77" wheel``. Then run this script with ``--build-deps`` pointing to
 that directory. Package installs themselves always use ``--no-index``.
 """
 
@@ -81,7 +81,7 @@ def verify_package(artifact: Path, working: Path, build_deps: Path,
     cli = bin_dir / ("phishlens.exe" if os.name == "nt" else "phishlens")
     pip = [str(python), "-I", "-m", "pip", "--isolated", "install", "--no-index"]
     if artifact.suffix != ".whl":
-        run(pip + ["--find-links", str(build_deps), "setuptools>=68", "wheel"], working)
+        run(pip + ["--find-links", str(build_deps), "setuptools>=77", "wheel"], working)
     run(pip + ["--no-deps", "--no-build-isolation", str(artifact)], working)
 
     # Confirm that both metadata and the module come from the installed artifact.
@@ -89,6 +89,10 @@ def verify_package(artifact: Path, working: Path, build_deps: Path,
         "import json, phishlens; from importlib.metadata import version; "
         "print(json.dumps({'metadata_version': version('phishlens'), "
         "'module_version': phishlens.__version__, 'path': phishlens.__file__}))"], working))
+    require(json.loads(run([str(python), "-I", "-c",
+        "import json; from importlib.metadata import metadata; "
+        "print(json.dumps(metadata('phishlens')['License-Expression']))"], working)) == "MIT",
+            "Installed package does not declare the MIT licence")
     require(installed["metadata_version"] == version and installed["module_version"] == version,
             f"Installed version does not match pyproject.toml: {installed}")
     require(Path(installed["path"]).resolve().is_relative_to(environment.resolve()),
