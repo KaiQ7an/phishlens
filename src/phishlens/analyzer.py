@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 
 from . import attachments as attachment_rules
 from .auth import AuthVerdicts, parse_authentication_results
-from .content import CHAT_APP_DOMAINS, asking_text, find_callback_number, find_signals
+from .content import CHAT_APP_DOMAINS, GIFT_CARD_PAYMENT_RE, asking_text, find_callback_number, find_signals
 from .domains import (FREE_MAIL_DOMAINS, brand_terms, custom_brands, find_lookalike, is_government, is_ip,
                       is_mixed_script, protected_brands, protected_domains, registrable_domain, same_site,
                       to_unicode)
@@ -299,10 +299,11 @@ def _content_findings(email: ParsedEmail, visible_html_text: str) -> list[Findin
             continue
         findings.append(Finding(signal.code, signal.severity, signal.title, evidence))
     asking = asking_text(text)
-    if _GIFT_CARD_RE.search(asking) and _GIFT_CARD_CODES_RE.search(asking):
+    if ((_GIFT_CARD_RE.search(asking) and _GIFT_CARD_CODES_RE.search(asking))
+            or re.search(GIFT_CARD_PAYMENT_RE, asking)):
         findings.append(Finding("content.gift_card_codes", "high",
-                                "Asks for gift card numbers or codes, which work like cash once shared",
-                                "gift card codes requested"))
+                                "Asks for payment in gift cards or for their codes, which work like cash once shared",
+                                "gift card payment or codes requested"))
     if number := find_callback_number(text):
         findings.append(Finding("content.callback", "high",
                                 "Reports a charge or legal claim and gives a phone number to dispute it, a common way to move a scam to a call",

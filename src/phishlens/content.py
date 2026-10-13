@@ -19,6 +19,10 @@ class Signal:
     patterns: tuple[str, ...] = ()  # regular expressions, for phrases with numbers
 
 
+GIFT_CARD_PAYMENT_RE = (r"\bpay(?:ment)?\s+(?:[\w-]+\s+){0,3}?(?:with|in|using|by)\s+(?:[\w-]+\s+){0,3}?gift cards?\b"
+                        r"|\bgift cards?\s+(?:as|for)\s+(?:payment|the fee|the fine)\b"
+                        r"|(?:用|以)\s*(?:礼品卡|购物卡|充值卡|京东卡|e卡|游戏卡)\s*(?:支付|付款|缴纳|缴费|抵扣)")
+
 SIGNALS: tuple[Signal, ...] = (
     Signal("content.urgency", "low", "Creates time pressure", (
         "urgent", "immediately", "within 24 hours", "within 48 hours", "final notice", "act now",
@@ -28,7 +32,7 @@ SIGNALS: tuple[Signal, ...] = (
     ), (r"\bwithin \d{1,2} (?:hours|days)\b", r"\d{1,2}\s*(?:小时|天|日)内", r"[一二两三四五六七]\s*(?:天|日)内")),
     Signal("content.credentials", "medium", "Asks for a password, code or identity details", (
         "verify your account", "confirm your password", "reset your password", "enter your password",
-        "update your payment", "login to verify", "verification code", "one-time code",
+        "update your payment", "login to verify",
         "bank account number", "copy of your id", "copy of your passport",
         "card details", "verify your card", "update your card", "card number",
         "登录验证", "账户验证", "身份证号", "银行卡号", "身份证照片", "银行卡信息", "信用卡信息",
@@ -37,20 +41,27 @@ SIGNALS: tuple[Signal, ...] = (
         # in advice such as 修改密码 (change your password), so it is not enough.
         r"(?:回复|提供|告知|告诉|发送|填写|输入|报)[^。！？\n]{0,12}(?:密码|验证码)",
         r"(?:密码|验证码)[^。！？\n]{0,6}(?:告诉|告知|发给|回复|报给)",
+        # Asks to hand over a sign-in code. Merely mentioning one is what every
+        # genuine code email does, and referral or discount codes are not secrets.
+        r"\b(?:send|give|tell|share|forward|read out|reply with|provide)\b[^.\n]{0,40}"
+        r"\b(?:verification|one-time|security|sms|login|authentication|access|6-digit|six-digit)\s+codes?\b",
+        r"\breply with the code\b", r"\bthe code (?:that )?we (?:just )?sent\b",
     )),
     Signal("content.payment", "medium", "Asks for money or an unusual payment method", (
-        "gift card", "wire transfer", "bank transfer", "bitcoin", "western union", "processing fee",
+        "wire transfer", "bank transfer", "bitcoin", "western union", "processing fee",
         "redelivery fee", "customs fee", "clearance fee", "bank details", "new account details",
         "usdt", "crypto wallet", "can you transfer", "could you transfer", "please transfer",
         "转账", "汇款", "保证金", "手续费", "安全账户", "比特币", "清关费", "西联", "收款账户", "银行账户变更",
         "垫付", "帮我转", "转给我", "借钱", "需要用钱", "急需用钱",
         "late fee", "penalty", "unpaid", "postage fee", "缴纳", "罚款", "滞纳金", "邮费",
         "must be paid", "needs to be paid", "押金", "定金", "订金", "打过来", "监管账户",
-        "礼品卡", "购物卡", "充值卡", "京东卡", "e卡",
     ), (
         # A payment verb or "payment of" followed closely by an amount.
         r"\b(?:pay|send|transfer|wire|remit)\s+(?:[\w-]+\s+){0,4}?[$€£¥]\s?\d",
-        r"\bpayment of\s+[$€£¥]\s?\d",
+        r"\b(?:make|send|process|complete|arrange|authori[sz]e)\s+(?:a\s+|the\s+)?(?:[\w-]+\s+){0,2}?"
+        r"payment of\s+[$€£¥]\s?\d",
+        # Paying with gift cards; a bare mention is usually a shop selling them.
+        GIFT_CARD_PAYMENT_RE,
         # Money sent to "my"/"this" card or account.
         r"(?:到|给|进)(?:我|我的|这个|指定)(?:的)?(?:卡|账户|账号|银行卡)",
         r"\bto (?:my|our|this|the following)\s+(?:[\w'-]+\s+){0,2}account\b",

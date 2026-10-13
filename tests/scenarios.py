@@ -1633,12 +1633,6 @@ KNOWN_GAPS: dict[str, str] = {
                                     "a genuine HR portal notice; telling them apart needs sender reputation.",
     "dev/legit/social-text-own-link": "Deliberately not reduced: other text over a link to the sender's own site is how a "
                                       "phisher's own domain hides behind a trusted name.",
-    "dev/legit/verification-code-notice": "Mentioning a verification code counts as asking for one.",
-    "dev/legit/one-time-code-login": "Mentioning a one-time code counts as asking for one.",
-    "dev/legit/billing-reply-to-helpdesk": "A help-desk Reply-To and a scheduled payment notice read as a request.",
-    "dev/legit/retail-gift-card-promo": "Selling gift cards counts as a payment request.",
-    "dev/legit/cafe-gift-card-reward": "Selling gift cards counts as a payment request.",
-    "dev/phish/pay-fine-gift-cards": "Paying with gift cards is only a medium payment phrase.",
     "holdout2/phish/remote-job-cheque": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout2/phish/esign-settlement": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout3/phish/unpaid-toll": "Missed by the round-three rules (holdout3: not used for tuning).",

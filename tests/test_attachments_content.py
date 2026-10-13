@@ -89,3 +89,25 @@ def test_reassurance_does_not_hide_a_request_in_another_sentence():
 def test_negation_does_not_apply_to_pressure_or_secrecy():
     codes = {s.code for s, _ in find_signals("Never share this with anyone. Do not tell your family.")}
     assert "content.secrecy" in codes
+
+
+@pytest.mark.parametrize("text, asks", [
+    ("Your verification code is 482913. It expires in 10 minutes.", False),
+    ("Share your referral code with friends and get $10.", False),
+    ("Don't share this verification code with anyone.", False),
+    ("Reply with the code we sent to your phone.", True),
+    ("Please send us the 6-digit code from the text message.", True),
+])
+def test_codes_count_only_when_asked_for(text, asks):
+    assert ("content.credentials" in {s.code for s, _ in find_signals(text)}) == asks
+
+
+@pytest.mark.parametrize("text, payment", [
+    ("Give a gift card, delivered by email.", False),
+    ("Pay with Google Play gift cards today.", True),
+    ("请用京东E卡支付罚款。", True),
+    ("Payment of $35.00 will be taken on 20 October.", False),
+    ("Please make a same-day payment of $18,900.", True),
+])
+def test_payment_requests_need_a_request(text, payment):
+    assert ("content.payment" in {s.code for s, _ in find_signals(text)}) == payment

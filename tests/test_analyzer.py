@@ -358,3 +358,9 @@ def test_trusted_name_over_a_link_to_the_senders_own_domain_stays_high():
     report = analyze(_html_email("quota-alerts.example", "https://my.monash.edu/mail",
                                  "https://quota-alerts.example/upgrade"))
     assert _severity(report, "url.anchor_mismatch") == "high"
+
+
+def test_paying_with_gift_cards_is_high_risk():
+    codes = {(f.code, f.severity) for f in analyze(_email("Fines", "mail-host.example",
+                                                         "Pay the fine with Google Play gift cards.")).findings}
+    assert ("content.gift_card_codes", "high") in codes
