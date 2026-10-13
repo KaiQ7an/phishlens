@@ -9,7 +9,7 @@ from pathlib import Path
 
 from . import __version__
 from .analyzer import Report, analyze_file
-from .display import json_display, terminal_text
+from .display import fit, json_display, terminal_text
 from .domains import load_brand_file
 from .model import Model, ModelError, load_model
 from .message import DEFAULT_MAX_BYTES, EmailInputError
@@ -84,9 +84,8 @@ def _summary_text(reports: list[Report], error_count: int) -> str:
              f"  {'VERDICT':<11} {'SCORE':>5}  {'TOP FINDING':<52}  FILE"]
     for report in rows:
         top = terminal_text(report.findings[0].title) if report.findings else "-"
-        if len(top) > 52:
-            top = top[:51] + "…"
-        lines.append(f"  {_LEVEL_LABEL[report.level]:<11} {report.score:>5}  {top:<52}  {terminal_text(report.source)}")
+        lines.append(f"  {_LEVEL_LABEL[report.level]:<11} {report.score:>5}  {fit(top, 52)}  "
+                     f"{terminal_text(report.source)}")
     counts = {level: sum(r.level == level for r in reports) for level in ("high", "suspicious", "low")}
     lines += ["", f"  high {counts['high']} · suspicious {counts['suspicious']} · low {counts['low']}"
                   f" · not analysed {error_count}",

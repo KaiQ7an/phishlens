@@ -37,3 +37,23 @@ def json_display(value: str) -> str:
     return "".join(json.dumps(character, ensure_ascii=True)[1:-1]
                    if character != "\n" and _unsafe(character) else character
                    for character in value)
+
+
+def display_width(value: str) -> int:
+    """Terminal columns: wide East Asian characters take two, combining marks none."""
+    return sum(0 if unicodedata.combining(ch) else 2 if unicodedata.east_asian_width(ch) in "WF" else 1
+               for ch in value)
+
+
+def fit(value: str, width: int) -> str:
+    """Shorten with an ellipsis and pad so the text fills exactly ``width`` columns."""
+    if display_width(value) > width:
+        kept, used = [], 0
+        for ch in value:
+            w = display_width(ch)
+            if used + w > width - 1:
+                break
+            kept.append(ch)
+            used += w
+        value = "".join(kept) + "…"
+    return value + " " * (width - display_width(value))

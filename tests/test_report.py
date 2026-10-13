@@ -64,3 +64,12 @@ def test_container_hash_provenance_is_shown():
     report = Report("", email, None, [])
     assert "may differ from original attachment bytes" in to_text(report)
     assert json.loads(to_json(report))["attachments"][0]["hash_basis"] == "serialized-mime"
+
+
+def test_fit_measures_wide_characters():
+    from phishlens.display import display_width, fit
+    assert display_width("发票abc") == 7
+    assert display_width(fit("发票abc", 10)) == 10
+    shortened = fit("'付款通知发票.pdf.exe' looks like a .pdf", 12)
+    assert display_width(shortened) == 12 and shortened.rstrip().endswith("…")
+    assert fit("abc", 3) == "abc"
