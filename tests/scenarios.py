@@ -596,6 +596,27 @@ def _dev_round_eight() -> list[Scenario]:
     ]
 
 
+def _dev_round_nine() -> list[Scenario]:
+    """Added 2026-10-13 after a private check on the user's own mail (counts
+    only) found two ordinary marketing messages flagged by delivery wording
+    plus a Reply-To on another domain. These are invented reconstructions of
+    that pattern in two wordings; no real message content is used."""
+    s = "legitimate"
+    return [
+        Scenario("dev/legit/retail-free-delivery", "dev", s, "marketing",
+                 "Retail promotion mentioning free delivery, with replies going to the mailing service.",
+                 build("Harbour Outdoors <news@harbouroutdoors.com.au>", "Spring deals inside",
+                       "Spring deals are here: 20% off hiking boots and free delivery on orders over $80.\\n",
+                       reply_to="Harbour Outdoors <support@harbouroutdoors.zendesk.example>")),
+        Scenario("dev/legit/event-package-newsletter", "dev", s, "marketing",
+                 "Event newsletter about hospitality packages, with replies to a separate domain.",
+                 build("Track Days Australia <hello@trackdays.com.au>", "Race weekend guide",
+                       "Your race weekend guide: hospitality packages, parking and shuttle details. "
+                       "Merchandise orders are available for delivery to your seat.\\n",
+                       reply_to="Track Days Team <team@trackdays-events.example>")),
+    ]
+
+
 def _holdout() -> list[Scenario]:
     s, p = "legitimate", "phishing"
     return [
@@ -1538,7 +1559,7 @@ def _holdout_round_seven() -> list[Scenario]:
     ]
 
 
-SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _dev_round_five() + _dev_round_six() + _dev_round_seven() + _dev_round_eight() + _holdout() + _holdout_round_two() + _holdout_round_three() + _holdout_round_four() + _holdout_round_five() + _holdout_round_six() + _holdout_round_seven())
+SCENARIOS: tuple[Scenario, ...] = tuple(_dev_legitimate() + _dev_phishing() + _dev_round_two() + _dev_round_three() + _dev_round_four() + _dev_round_five() + _dev_round_six() + _dev_round_seven() + _dev_round_eight() + _dev_round_nine() + _holdout() + _holdout_round_two() + _holdout_round_three() + _holdout_round_four() + _holdout_round_five() + _holdout_round_six() + _holdout_round_seven())
 
 
 # Scenario id -> why the current rules miss it. Remove an entry when it is fixed.
@@ -1548,6 +1569,10 @@ KNOWN_GAPS: dict[str, str] = {
         "Contact's documented route is calibrated, deliberately not a general mailing-service allowlist.",
     "dev/phish/bonus-letter-login": "A 'log in to view' request with a link to the sender's own login page reads like "
                                     "a genuine HR portal notice; telling them apart needs sender reputation.",
+    "dev/legit/retail-free-delivery": "Delivery wording scores on its own and, with an ordinary Reply-To on "
+                                      "another domain, reaches the suspicious threshold.",
+    "dev/legit/event-package-newsletter": "Delivery wording scores on its own and, with an ordinary Reply-To "
+                                          "on another domain, reaches the suspicious threshold.",
     "holdout2/phish/remote-job-cheque": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout2/phish/esign-settlement": "Missed by the round-two rules (holdout2: not used for tuning).",
     "holdout3/phish/unpaid-toll": "Missed by the round-three rules (holdout3: not used for tuning).",
