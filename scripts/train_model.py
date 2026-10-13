@@ -131,6 +131,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--epochs", type=int, default=8)
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args(argv)
+    missing = [p for p in args.phishing + args.legitimate if not p.expanduser().exists()]
+    if missing:
+        print(f"train_model: {len(missing)} source path(s) do not exist, first: {missing[0]}", file=sys.stderr)
+        return 1
 
     out = args.out.expanduser().resolve()
     if out.is_relative_to(REPO):

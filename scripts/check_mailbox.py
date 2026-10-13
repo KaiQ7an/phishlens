@@ -24,7 +24,7 @@ from pathlib import Path
 
 from phishlens.analyzer import analyze
 from phishlens.message import DEFAULT_MAX_BYTES, EmailInputError, parse_bytes
-from phishlens.model import Model, load_model
+from phishlens.model import Model, ModelError, load_model
 
 MAX_FILES = 100_000
 
@@ -50,9 +50,14 @@ def raw_messages(sources: list[Path]):
                 except OSError:
                     yield None
                 continue
-            box = mailbox.mbox(path, create=False)
             try:
-                for key in box.keys():
+                box = mailbox.mbox(path, create=False)
+                keys = box.keys()
+            except (OSError, mailbox.Error):
+                yield None
+                continue
+            try:
+                for key in keys:
                     raw = box.get_bytes(key)
                     yield raw if len(raw) <= DEFAULT_MAX_BYTES else None
             finally:
@@ -114,8 +119,17 @@ def main(argv: list[str] | None = None) -> int:
                         help="what these messages are known to be")
     parser.add_argument("--model", type=Path, help="also score with a model from scripts/train_model.py")
     args = parser.parse_args(argv)
-    model = load_model(args.model) if args.model else None
-    print(check([s.expanduser() for s in args.sources], args.label, model))
+    sources = [s.expanduser() for s in args.sources]
+    missing = sum(not s.exists() for s in sources)
+    if missing:
+        print(f"check_mailbox: {missing} source path(s) do not exist", file=sys.stderr)
+        return 1
+    try:
+        model = load_model(args.model.expanduser()) if args.model else None
+    except (OSError, ModelError) as error:
+        print(f"check_mailbox: cannot load model: {error}", file=sys.stderr)
+        return 1
+    print(check(sources, args.label, model))
     return 0
 
 

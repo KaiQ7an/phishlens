@@ -53,3 +53,13 @@ def test_model_line_and_unreadable_files(tmp_path, capsys):
     out = check_mailbox.check([inbox], "phishing", Model(0.0, {}, 0.6))
     assert "Detected (suspicious or high): 1/2" in out and "1 could not be read" in out
     assert "0/2 above threshold" in out
+
+
+def test_missing_sources_and_bad_models_fail_cleanly(tmp_path, capsys):
+    assert check_mailbox.main([str(tmp_path / "nowhere"), "--label", "legitimate"]) == 1
+    assert "do not exist" in capsys.readouterr().err
+    inbox, _ = _write_mail(tmp_path)
+    bad = tmp_path / "bad-model.json"
+    bad.write_text("{}")
+    assert check_mailbox.main([str(inbox), "--label", "legitimate", "--model", str(bad)]) == 1
+    assert "cannot load model" in capsys.readouterr().err

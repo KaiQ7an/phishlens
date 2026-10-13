@@ -69,3 +69,9 @@ def test_dev_scenarios_set_the_threshold_by_cross_fitting(tmp_path, capsys):
     report = json.loads(capsys.readouterr().out)
     oof = report["dev_out_of_fold"]
     assert oof["phishing"] + oof["legitimate"] == report["dev_scenarios"]["count"] > 0
+
+
+def test_missing_sources_fail_cleanly(tmp_path, capsys):
+    assert train_model.main(["--phishing", str(tmp_path / "none.mbox"), "--legitimate", str(tmp_path),
+                             "--test-from-year", "2023", "--out", str(tmp_path / "m.json")]) == 1
+    assert "do not exist" in capsys.readouterr().err
