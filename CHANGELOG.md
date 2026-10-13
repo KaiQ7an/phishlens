@@ -4,6 +4,8 @@
 
 ### Added
 
+- License PhishLens under the MIT License (`LICENSE`), declared in package
+  metadata as an SPDX expression; building now needs setuptools 77 or newer.
 - Analyse several files or a directory of `.eml` files in one run. Text output
   is a summary table sorted by score; `--json` adds counts, full reports and
   the files that could not be analysed. `--fail-on` applies to every file, and
@@ -124,5 +126,5 @@
 - Build and smoke-test wheel/source archives using isolated installations
   outside the checkout without network access during installation.
 
-No tagged release or PyPI package has been published. Licensing and formal
-release remain pending final review.
+No tagged release or PyPI package has been published. Formal release remains
+pending final review.

@@ -109,7 +109,7 @@ git diff --check
 phishlens_dist_dir="$(mktemp -d /tmp/phishlens-dist.XXXXXX)"
 python -m build --outdir "$phishlens_dist_dir"
 python -m twine check "$phishlens_dist_dir"/*
-python -m pip download --only-binary=:all: --dest /tmp/phishlens-build-deps 'setuptools>=68' wheel
+python -m pip download --only-binary=:all: --dest /tmp/phishlens-build-deps 'setuptools>=77' wheel
 python scripts/verify_distribution.py --dist-dir "$phishlens_dist_dir" --build-deps /tmp/phishlens-build-deps
 ```
 
@@ -126,5 +126,5 @@ python scripts/verify_distribution.py --dist-dir "$phishlens_dist_dir" --build-d
 ## 下一步优先级
 
 1. 统计模型缺现代正常邮件语料。需要用户决定数据来源：继续寻找有许可的现代语料，或在用户明确同意下仅在本机使用用户自己导出的邮件训练（绝不入库）；否则保持模型为实验性、默认关闭。
-2. 明确许可证，完成陌生用户安装和报告理解的最终检查，再单独执行正式发布步骤。正式发布仍保持延后。
+2. 许可证已定为 MIT（2026-10-13，用户同意；`LICENSE`，包元数据 `license = "MIT"`，构建需 setuptools ≥77）。剩余：完成陌生用户安装和报告理解的最终检查，再单独执行正式发布步骤。正式发布仍保持延后。
 3. 批量分析与自定义品牌（`--brands`）已完成。后续可研究更完整的离线域名数据、可配置语言规则和报告对比。公开 Web 服务或外部信誉查询属于新范围，不能悄悄加入当前离线 CLI。

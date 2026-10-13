@@ -22,7 +22,8 @@ package has not been published. Formal release is deferred until final review.
 [Optional statistical model](#optional-statistical-model-experimental) ·
 [Checking your own mail](#checking-your-own-mail-privately) ·
 [Safety model](#safety-model-and-limitations) ·
-[Development](#development) · [Roadmap](#roadmap)
+[Development](#development) · [Roadmap](#roadmap) ·
+[Licence](#author-and-licence)
 
 ## Quick start
 
@@ -476,7 +477,7 @@ To run the package check locally:
 python -m pip install build twine
 python -m build
 python -m twine check dist/*
-python -m pip download --only-binary=:all: --dest /tmp/phishlens-build-deps 'setuptools>=68' wheel
+python -m pip download --only-binary=:all: --dest /tmp/phishlens-build-deps 'setuptools>=77' wheel
 python scripts/verify_distribution.py --build-deps /tmp/phishlens-build-deps
 ```
 
@@ -508,8 +509,7 @@ phishlens --version
   unverified provenance, inline/container attachment handling, escaped report
   controls, and cross-platform CI/package verification.
 - **Before formal release:** review CI results, expand independent synthetic
-  scenarios and compatibility checks, decide licensing, and complete final
-  usability review. Tagged releases and PyPI publication remain deferred.
+  scenarios and compatibility checks, and complete final usability review. Tagged releases and PyPI publication remain deferred.
 - **Later:** broader domain data and configurable language rules, plus report
   comparison. Batch analysis and custom protected brands are available now.
 - **Experimental:** an optional local statistical model (see above); it needs
@@ -518,6 +518,6 @@ phishlens --version
   clear disclosure of submitted URLs/hashes. `intel.py` currently contains an
   interface stub only; external lookups are not implemented.
 
-## Author
+## Author and licence
 
-KaiQian Xue
+KaiQian Xue. Released under the [MIT License](LICENSE).
