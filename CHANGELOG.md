@@ -15,6 +15,8 @@
   corpora (refusing to write inside the repository), and `--model FILE` adds
   its opinion as one finding. No model is distributed; the README reports why
   a model trained on public corpora is not yet useful.
+- Add `check_mailbox.py --detail`: finding combinations, matched built-in
+  phrases or numbered patterns, and link-mismatch kinds, without message text.
 - Add `scripts/check_mailbox.py`, which measures PhishLens on your own exported
   mail and prints only counts (verdicts, false-alarm or detection rate,
   finding codes, model score spread), never names, subjects, addresses, links
@@ -102,6 +104,15 @@
 - Score parcel and delivery wording only alongside a request for money or card
   details; on its own it is reported as information. Ordinary marketing mail
   ("free delivery") with a Reply-To on another domain is no longer flagged.
+- Reduce false alarms found on real mail: link text showing a fully
+  authenticated sender's own site over click tracking is a low "destination
+  unverified" note; a help-desk Reply-To from such a sender is low when the
+  message is otherwise clean (free-mail reply targets stay medium); sign-in
+  codes count only when the reader is asked to hand one over; gift cards,
+  "payment of" and "to my account" count only in a request; more phrasings
+  of "never give this code" are safety advice. On the author's mailbox, false
+  alarms fell from 22% to 11% with no synthetic detection lost.
+- Paying with gift cards is now a high finding.
 - Scripts report missing sources and invalid models without a traceback, and
   the batch summary aligns columns for wide (for example Chinese) characters.
 - Ignore safety advice that says what will never be asked ("we will never ask
@@ -114,14 +125,14 @@
 
 ### Validation
 
-- Add 262 labelled synthetic scenarios: a dev split for tuning and seven
+- Add 278 labelled synthetic scenarios: a dev split for tuning and seven
   holdout splits, each written after a round of rule changes and run once.
   `scripts/evaluate.py` reports precision and recall per split and, for newer
   holdouts, detection of reworded versus new categories. First-run recall on
   unseen holdouts ranged from 8% to 50% without an upward trend, with three
   false alarms across 76 legitimate holdout messages; the README explains what
   the rounds show. Remaining misses run as strict expected failures.
-- Expand the regression suite to 783 synthetic tests.
+- Expand the regression suite to 829 synthetic tests.
 - Add CI for Linux Python 3.11–3.14 and macOS/Windows Python 3.14.
 - Build and smoke-test wheel/source archives using isolated installations
   outside the checkout without network access during installation.

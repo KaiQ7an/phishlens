@@ -7,11 +7,13 @@ includes a reason, evidence when available, and its contribution to the score.
 
 It explains recognised warning signs; it is not a spam filter. On synthetic
 scams written after the rules, it flagged 8–50% on first run, so a low score
-is not a sign that an email is safe (see [Evaluation](#evaluation)).
+is not a sign that an email is safe; on the author's real inbox it still
+flags about one ordinary message in nine (see [Evaluation](#evaluation) and
+[Checking your own mail](#checking-your-own-mail-privately)).
 
 The current MVP uses Python's standard library, with no runtime dependencies or
 API keys. It includes English and Chinese rules, six synthetic sample emails
-and 262 labelled synthetic evaluation scenarios.
+and 278 labelled synthetic evaluation scenarios.
 
 **Status:** active development. The code is public; a tagged Release or PyPI
 package has not been published. Formal release is deferred until final review.
@@ -263,7 +265,7 @@ Its support community also describes [intermediate click-tracking links](https:/
 
 ## Evaluation
 
-`scripts/evaluate.py` scores 262 labelled synthetic scenarios in
+`scripts/evaluate.py` scores 278 labelled synthetic scenarios in
 `tests/scenarios.py` (`--markdown` or `--json` for other formats). Each
 scenario's label was written before the rules were run against it. The
 **dev** split is used to find and fix rule gaps. Each **holdout** split was
@@ -282,7 +284,7 @@ scenario counts as detected when it scores suspicious or high.
 | holdout6 | round 6 | 1 / 12 | 1 / 12 | 1 / 14 |
 | holdout7 | the negation change | 3 / 6 | (current unseen set) | 2 / 24 |
 
-The dev split has 122 scenarios with 98% recall and one false alarm.
+The dev split has 138 scenarios with 98% recall and one false alarm.
 Holdout7 is mostly ordinary inbox mail (marketing and app notices) to measure
 false alarms.
 Holdouts 4–6 separate reworded versions of categories earlier rounds covered
@@ -373,8 +375,11 @@ learned "old list mail versus modern mail" and flagged most of the synthetic
 legitimate notices, receipts and alerts. Adding the 120 synthetic dev
 scenarios and setting the threshold on dev scenarios the model had not seen
 made it conservative: with the rules, it added one holdout detection and one
-holdout false alarm. What is missing is modern legitimate mail; until a
-suitable corpus is available, the model is not recommended for use.
+holdout false alarm. Adding the author's 494 messages as a legitimate source
+(kept local) helped on that mail: without dev scenarios, 11 of 98 held-out
+personal messages were flagged at threshold 0.50; with them and a
+cross-fitted threshold of 0.976, none of 100 were. It did not improve the
+synthetic results, so the model stays experimental and off by default.
 
 The training script splits each legitimate source separately and reports a
 false-alarm count per source, so you can add your own exported mailbox (an
@@ -396,11 +401,22 @@ python -I scripts/check_mailbox.py ~/Mail/Reported-phishing.mbox --label phishin
 Directories are searched recursively for `.eml` files; mbox files are read
 directly.
 
-On ten of the author's own recent messages, the first check found two false
-alarms (20%) from the rules and none from the model. Both came from delivery
-wording plus an ordinary Reply-To on another domain; delivery wording now
-scores only alongside a request for money or card details. Ten messages are
-far too few to measure a rate; the check is there so you can run it on more.
+`--detail` adds diagnostics for flagged messages, still without message text:
+common finding combinations, which built-in phrases or numbered built-in
+patterns matched, and how link-text mismatches relate to the sender and DMARC.
+
+**Real mail.** On 494 of the author's own messages, exported from Gmail and
+checked this way, the rules flagged **22%** as suspicious or high, far above
+the synthetic false-alarm rate (3 of 76). The diagnostics traced most of it
+to click tracking behind the sender's own URL, sign-in code notices, help-desk
+Reply-To addresses, gift card promotions and payment notices. After fixes
+made with invented reconstructions of those patterns (no real content enters
+the repository), the rate on the same mailbox, then 521 messages, fell to
+**11%**, with no loss of detection on any synthetic set. Because this mailbox
+guided the fixes, 11% is not an unseen measure. Most of what remains is
+genuine billing mail that asks to "update your card" and replies to another
+domain, which reads exactly like billing phishing, and link text naming a
+site other than the sender's, which is the disguise phishing relies on.
 
 ## Safety model and limitations
 
@@ -444,7 +460,7 @@ python -m pip install '.[dev]'
 python -m pytest -q
 ```
 
-The current suite has 783 tests (including 26 expected failures for known
+The current suite has 829 tests (including 26 expected failures for known
 gaps) for message parsing, input limits, malformed MIME,
 text decoding, authentication-header ambiguity, domains, links, inline/container
 attachments, language signals, scoring, mailing-route boundaries, safe report
