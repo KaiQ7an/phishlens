@@ -15,6 +15,14 @@ API keys. It includes English and Chinese rules and six synthetic sample emails.
 **Status:** active development. The code is public; a tagged Release or PyPI
 package has not been published. Formal release is deferred until final review.
 
+**Contents:** [Quick start](#quick-start) · [Usage](#usage) ·
+[Example](#example) · [What it checks](#what-it-checks) ·
+[Scoring](#scoring) · [Evaluation](#evaluation) ·
+[Optional statistical model](#optional-statistical-model-experimental) ·
+[Checking your own mail](#checking-your-own-mail-privately) ·
+[Safety model](#safety-model-and-limitations) ·
+[Development](#development) · [Roadmap](#roadmap)
+
 ## Quick start
 
 Requires Python 3.11 or newer. Development has been checked on Python 3.14.8.
